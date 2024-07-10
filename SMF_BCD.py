@@ -82,10 +82,12 @@ class SDL_BCD():
         self.loading = ini_loading
         if ini_loading is None:
             d1, n = X[0].shape
-            if len(X[1].shape) == 1:
-                d2, n = X[1].shape, 1
-            else:
-                d2, n = X[1].shape
+            print(X[1].shape)
+            d2, n = X[1].shape
+            # if len(X[1].shape) == 1:
+            #     d2, n = X[1].shape, 1
+            # else:
+            #     d2, n = X[1].shape
             r = n_components
             self.loading = [np.random.rand(X[0].shape[0], r), 1-2*np.random.rand(X[1].shape[0], r + 1 + self.d3)]  # additional first column for constant terms in Logistic Regression
             # add additional d3 columns of regression coefficients for the auxiliary variables
