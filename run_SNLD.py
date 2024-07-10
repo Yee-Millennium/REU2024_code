@@ -20,8 +20,11 @@ def run_SNLD():
 
     # Do sampling, and get the matrix and the feature vector
     A, y = sampling(graph_list, k = 30, sample_size=100)
-
+    print(A,y)
     # Check
+    np.savetxt('Output/A.txt', A, fmt='%d')
+    np.savetxt('Output/y.txt', y, fmt='%d')
+
     print(f"\nThis is the shape of A: {A.shape}")
     print(f"\nThis is the shape of y: {y.shape}")
 
