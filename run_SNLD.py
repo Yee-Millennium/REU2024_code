@@ -20,8 +20,10 @@ def run_SNLD():
 
     # Do sampling, and get the matrix and the feature vector
     A, y = sampling(graph_list, k = 30, sample_size=100)
-    print(f"This is the shape of A: {A}")
-    print(f"\nThis is the shape of y: {y}")
+
+    # Check
+    print(f"\nThis is the shape of A: {A.shape}")
+    print(f"\nThis is the shape of y: {y.shape}")
 
 
 if  __name__ == '__main__':
