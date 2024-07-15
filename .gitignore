@@ -15,3 +15,16 @@ src/sampling/__pycache__/sampling.cpython-39.pyc
 SMF/
 NDL_paper/
 src/NDL/ndl_test.py
+output/fly_medulla_dic_3.jpg
+output/fly_medulla_dic.jpg
+output/fly_medulla_dic_1.jpg
+output/fly_medulla_dic_2.jpg
+output/fly_medulla_dic_RW.jpg
+output/mouse_retina_dic.jpg
+src/NDL/__pycache__/ndl_RW.cpython-312.pyc
+Temp_save_graphs/temp_wtd_edgelist_recons.txt
+Temp_save_graphs/temp_wtd_edgelist_recons_baseline.txt
+Temp_save_graphs/temp_overlap_count.txt
+src/sampling/__pycache__/sampling.cpython-312.pyc
+src/NDL/__pycache__/ndl_test.cpython-312.pyc
+src/NDL/__pycache__/__init__.cpython-312.pyc
