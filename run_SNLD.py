@@ -4,7 +4,8 @@ from src.sampling.sampling import sampling
 
 def run_SNLD():
     #ntwk_list = ['Caltech36', 'UCLA26', 'MIT8', 'Harvard1']
-    ntwk_list = ['Caltech36', 'UCLA26']
+    #ntwk_list = ['Caltech36', 'UCLA26']
+    ntwk_list = ['MIT8', 'Harvard1']
     sampling_alg = 'pivot'
     save_folder = 'output/'
 
@@ -19,17 +20,17 @@ def run_SNLD():
 
 
     # Do sampling, and get the matrix and the feature vector
-    A, y = sampling(graph_list, k = 30, sample_size=100)
+    A, y = sampling(graph_list, k = 30, sample_size_list=[1000, 1000])
     print(A,y)
     # Check
-    np.savetxt('Output/At.txt', A, fmt='%d')
-    np.savetxt('Output/yt.txt', y, fmt='%d')
+    np.savetxt('Output/At_mh.txt', A, fmt='%d')
+    np.savetxt('Output/yt_mh.txt', y, fmt='%d')
 
-    np.savetxt('Output/A.txt', A, fmt='%d')
-    np.savetxt('Output/y.txt', y, fmt='%d')
+    np.savetxt('Output/A_mh.txt', A, fmt='%d')
+    np.savetxt('Output/y_mh.txt', y, fmt='%d')
 
-    print(f"\nThis is the shape of A: {A.shape}")
-    print(f"\nThis is the shape of y: {y.shape}")
+    print(f"\nThis is the shape of A_mh: {A.shape}")
+    print(f"\nThis is the shape of y_mh: {y.shape}")
 
 
 if  __name__ == '__main__':

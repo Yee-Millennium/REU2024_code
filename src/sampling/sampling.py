@@ -4,7 +4,7 @@ from NNetwork import NNetwork as nn
 
 ### Return: a matrix of size k^2 * (len(list_graphs)*sample_size),
 ### and a vector of size len(list_graphs)*sample_size
-def sampling(list_graphs: list, labels = None, k = 20, sample_size = 100
+def sampling(list_graphs: list, labels = None, k = 20, sample_size_list = None
              , sampling_alg = 'pivot' #RW
              ,skip_folded_hom=True
              ):
@@ -14,8 +14,12 @@ def sampling(list_graphs: list, labels = None, k = 20, sample_size = 100
     embs_list = []
     i = 0
 
+    if not sample_size_list:
+        return ValueError('Please provide a sample_size_list!')
+
     # Construct the matrix
-    for G in list_graphs:
+    for idx, G in enumerate(list_graphs):
+        sample_size = sample_size_list[idx]
         if sampling_alg != 'RW':
             X, embs = G.get_patches(k=k, sample_size=sample_size,
                                     sampling_alg = sampling_alg,
@@ -38,8 +42,9 @@ def sampling(list_graphs: list, labels = None, k = 20, sample_size = 100
             X_list.append(X)
             embs_list.append(embs)
 
-    X_list = np.asarray(X_list)
-    X_list = np.hstack(X_list)
+    X_list = np.concatenate(X_list, axis=1)
+
+    print(f"X_list: {X_list.shape}")
 
     # Construct the labels
     if labels == None:
@@ -47,9 +52,15 @@ def sampling(list_graphs: list, labels = None, k = 20, sample_size = 100
 
     label_vec = []
     for i in range(len_networks):
-        label_vec.append(np.full(sample_size, labels[i]))
+        label_vec.append(np.full(sample_size_list[i], labels[i]).reshape(1,-1))
+
+    print(len(label_vec))
+    print(label_vec[0].shape)
+    print(label_vec[1].shape)
     
-    label_vec = np.asarray(label_vec)
+    label_vec = np.concatenate(label_vec, axis=1)
+    print(f"label_vec: {label_vec.shape}")
+
     label_vec = label_vec.reshape(-1)
 
     return X_list, label_vec

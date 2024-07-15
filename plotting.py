@@ -56,7 +56,7 @@ def display_graphs(title,
             A_sub = H.get_adjacency_matrix()
 
             # read in as a nx graph for plotting
-            G1 = nx.from_numpy_matrix(A_sub)
+            G1 = nx.from_numpy_array(A_sub)
             ax = fig.add_subplot(inner_grid[0, 0])
             pos = nx.spring_layout(G1)
             edges = G1.edges()
@@ -177,10 +177,10 @@ def display_dict_and_graph(title=None,
                     b = i % cols
                     ax = fig.add_subplot(inner_grid[a, b])
                     if regression_coeff is not None:
-                        ax.set_title(str(np.round(regression_coeff[i+1], 8)))
+                        ax.set_title(str(np.round(regression_coeff[i+1][0], 8)), fontsize=35, fontweight='bold')
                     k = int(np.sqrt(W.shape[0]))
                     A_sub = W[:,idx[i]].reshape(k,k)
-                    H = nx.from_numpy_matrix(A_sub)
+                    H = nx.from_numpy_array(A_sub)
                     G1 = nx.Graph()
                     for a in np.arange(k):
                         for b in np.arange(k):
