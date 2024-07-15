@@ -1,4 +1,4 @@
-practice.ipynb
+nn_prac.ipynb
 NNetwork/
 Network_Dictionary_Learning/
 
@@ -12,3 +12,5 @@ src/sampling/util/helper.py
 src/sampling/__pycache__/sampling.cpython-39.pyc
 
 .DS_Store
+SMF/
+NDL_paper/
