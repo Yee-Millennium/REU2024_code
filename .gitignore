@@ -14,3 +14,4 @@ src/sampling/__pycache__/sampling.cpython-39.pyc
 .DS_Store
 SMF/
 NDL_paper/
+src/NDL/ndl_test.py
