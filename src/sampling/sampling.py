@@ -1,6 +1,10 @@
-import logging
 import numpy as np 
 from NNetwork import NNetwork as nn
+
+
+### Maybe todo: larger network deserves more samples 
+
+
 
 ### Return: a matrix of size k^2 * (len(list_graphs)*sample_size),
 ### and a vector of size len(list_graphs)*sample_size
