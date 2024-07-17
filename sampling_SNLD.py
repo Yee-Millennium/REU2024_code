@@ -2,7 +2,7 @@ import numpy as np
 from NNetwork import NNetwork as nn
 from src.sampling.sampling import sampling_SNLD
 
-def run_SNLD():
+def sampling_SNLD():
     #ntwk_list = ['Caltech36', 'UCLA26', 'MIT8', 'Harvard1']
     ntwk_list = ['Caltech36', 'UCLA26']
     sampling_alg = 'pivot'
@@ -33,4 +33,4 @@ def run_SNLD():
 
 
 if  __name__ == '__main__':
-    run_SNLD()
+    sampling_SNLD()
