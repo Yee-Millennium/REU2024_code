@@ -1,6 +1,6 @@
 import numpy as np 
 from NNetwork import NNetwork as nn
-from src.sampling.sampling import sampling
+from src.sampling.sampling import sampling_SNLD
 
 def run_SNLD():
     #ntwk_list = ['Caltech36', 'UCLA26', 'MIT8', 'Harvard1']
@@ -19,7 +19,7 @@ def run_SNLD():
 
 
     # Do sampling, and get the matrix and the feature vector
-    A, y = sampling(graph_list, k = 30, sample_size=200)
+    A, y = sampling_SNLD(graph_list, k = 30, sample_size=200)
     print(A,y)
     # Check
     np.savetxt('Output/At.txt', A, fmt='%d')

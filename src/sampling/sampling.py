@@ -8,7 +8,7 @@ from NNetwork import NNetwork as nn
 
 ### Return: a matrix of size k^2 * (len(list_graphs)*sample_size),
 ### and a vector of size len(list_graphs)*sample_size
-def sampling(list_graphs: list, labels = None, k = 20, sample_size = 100
+def sampling_SNLD(list_graphs: list, labels = None, k = 20, sample_size = 100
              , sampling_alg = 'pivot' #RW
              ,skip_folded_hom=True
              ):
