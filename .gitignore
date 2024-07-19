@@ -60,3 +60,4 @@ output/figure/Cal_UCLA_500_500.png
 src/supervised_NDL/__pycache__/__init__.cpython-312.pyc
 src/supervised_NDL/__pycache__/SNDL.cpython-312.pyc
 src/supervised_NDL/__pycache__/SMF_BCD.cpython-312.pyc
+.gitattributes
