@@ -180,7 +180,7 @@ def display_dict_and_graph(title=None,
                         ax.set_title(str(np.round(regression_coeff[i+1], 8)))
                     k = int(np.sqrt(W.shape[0]))
                     A_sub = W[:,idx[i]].reshape(k,k)
-                    H = nx.from_numpy_matrix(A_sub)
+                    H = nx.from_numpy_array(A_sub)
                     G1 = nx.Graph()
                     for a in np.arange(k):
                         for b in np.arange(k):
