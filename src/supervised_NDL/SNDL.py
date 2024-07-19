@@ -4,7 +4,7 @@ from src.sampling.Sampling import sampling_SNLD
 from . import SMF_BCD
 
 
-def sndl_equalEdge(graph_list, sample_size_1, k, xi, n_components=16, iter = 250):
+def sndl_equalEdge(graph_list, sample_size_1, sample_size_2, k, xi, n_components=16, iter = 250):
     '''
     1. Given input graph_list, sample_size_1, k, 
     sample sample_size_1 number of k-subgraphs of the first network, and 
@@ -16,10 +16,13 @@ def sndl_equalEdge(graph_list, sample_size_1, k, xi, n_components=16, iter = 250
     problem, and get the result W (dictionary), beta (coefficients) and H (code).
     '''
 
-    sample_size_2 = sample_size_1 * len(graph_list[1].get_edges()) / len (graph_list[0].get_edges())
-    sample_size_2 = int(sample_size_2)
+    # sample_size_2 = sample_size_1 * len(graph_list[1].get_edges()) / len (graph_list[0].get_edges())
+    # sample_size_2 = int(sample_size_2)
     print(f"This is the second sample_size: {sample_size_2}")
     X, y = sampling_SNLD(graph_list, k=k, sample_size_list=[sample_size_1, sample_size_2])
+    # np.sum(X[:, :sample_size_1])
+    print(np.sum(X[:, :sample_size_1]))
+    print(np.sum(X[:, sample_size_1:]))
     y = y.reshape(-1,1)
 
     # SMF_W solve the SNDL
