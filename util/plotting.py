@@ -142,11 +142,19 @@ def display_dict_and_graph(title=None,
                 cols = rows + 1
         if At is None:
             idx = np.arange(W.shape[1])
+            # reg_0 = regression_coeff[0, :]
+            # idx = np.argsort(reg_0)
+            # idx = np.flip(idx)
         else:
             importance = np.sqrt(At.diagonal()) / sum(np.sqrt(At.diagonal()))
             # importance = np.sum(self.code, axis=1) / sum(sum(self.code))
+            # importance = regression_coeff
             idx = np.argsort(importance)
             idx = np.flip(idx)
+            # reg_0 = regression_coeff[0, :]
+            # importance = reg_0
+            # idx = np.argsort(importance)
+            # idx = np.flip(idx)
         Ndict_wspace = 0.05
         Ndict_hspace = 0.05
         fig = plt.figure(figsize=fig_size, constrained_layout=False)
@@ -177,6 +185,7 @@ def display_dict_and_graph(title=None,
                     b = i % cols
                     ax = fig.add_subplot(inner_grid[a, b])
                     if regression_coeff is not None:
+                        # ax.set_title(str(np.round(reg_0[i+1], 8)))
                         ax.set_title(str(np.round(regression_coeff[i+1], 8)))
                     k = int(np.sqrt(W.shape[0]))
                     A_sub = W[:,idx[i]].reshape(k,k)
