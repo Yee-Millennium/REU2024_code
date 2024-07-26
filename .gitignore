@@ -13,3 +13,5 @@ src/supervised_NDL/__pycache__/SNDL.cpython-312.pyc
 util/__pycache__/plotting.cpython-312.pyc
 src/sampling/__pycache__/Sampling.cpython-312.pyc
 *.pyc
+*.pyc
+util/__pycache__/plotting.cpython-312.pyc
