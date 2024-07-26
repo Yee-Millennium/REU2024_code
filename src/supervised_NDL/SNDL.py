@@ -4,7 +4,7 @@ from src.sampling.Sampling import sampling_SNLD
 from . import SMF_BCD
 
 
-def sndl_equalEdge(graph_list, sample_size_1, sample_size_2, k, xi, n_components=16, iter = 250):
+def sndl_equalEdge(graph_list, sample_size_list, k, xi, n_components=16, iter = 250):
     '''
     1. Given input graph_list, sample_size_1, k, 
     sample sample_size_1 number of k-subgraphs of the first network, and 
@@ -18,16 +18,11 @@ def sndl_equalEdge(graph_list, sample_size_1, sample_size_2, k, xi, n_components
 
     # sample_size_2 = sample_size_1 * len(graph_list[1].get_edges()) / len (graph_list[0].get_edges())
     # sample_size_2 = int(sample_size_2)
-    print(f"This is the second sample_size: {sample_size_2}")
-    X, y = sampling_SNLD(graph_list, k=k, sample_size_list=[sample_size_1, sample_size_2])
-    # np.sum(X[:, :sample_size_1])
-    print(np.sum(X[:, :sample_size_1]))
-    print(np.sum(X[:, sample_size_1:]))
-    y = y.reshape(-1,1)
 
+    X, y = sampling_SNLD(graph_list, k=k, sample_size_list=sample_size_list)
     # SMF_W solve the SNDL
-    SMF_Train = SMF_BCD.SDL_BCD([X, y.T], X_test=[X, y.T], xi= xi, n_components=n_components)
-    results_dict = SMF_Train.fit(iter=iter, subsample_size=None, option = "filter",# search_radius_const=200*np.linalg.norm(X),
+    SMF_Train = SMF_BCD.SDL_BCD([X, y], X_test=[X, y], xi= xi, n_components=n_components)
+    results_dict = SMF_Train.fit(iter=iter, subsample_size=None,# search_radius_const=200*np.linalg.norm(X),
                                 if_compute_recons_error=True, if_validate=True)
     
     W = results_dict.get('loading')[0]
@@ -58,4 +53,3 @@ def sndl_reg(G3, W, beta, n3):
     prob = p_sum / n3
 
     return prob
-
