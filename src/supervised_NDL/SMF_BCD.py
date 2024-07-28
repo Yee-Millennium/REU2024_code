@@ -542,7 +542,7 @@ class SDL_BCD():
                         self.result_dict.update({'time_error': time_error.T})
 
                         # stopping criterion
-                        if (total_error > 0) and (total_error_new > 1.2 * total_error):
+                        if (total_error > 0) and (total_error_new > 1.1 * total_error):
                             print("Early stopping: training loss increased")
                             self.result_dict.update({'iter': step})
                             break
