@@ -104,7 +104,6 @@ class SDL_BCD():
         self.result_dict.update({'nonnegativity' : self.nonnegativity})
         self.result_dict.update({'n_components' : self.n_components})
 
-
     def sparse_code(self, X, W, sparsity=0):
         # Same function as OMF
 
@@ -225,7 +224,9 @@ class SDL_BCD():
 
             # P = probability matrix, same shape as X1
             D = W0[1] @ H1_ext
-            P = 1 / (1 + np.exp(-D))
+            P = np.zeros(D.shape)
+            for i in range(D.shape[1]):
+                P[:, i] = np.exp(D[:, i]) / (1 + np.sum(np.exp(D[:, i])))
  
             if not self.full_dim:
                 grad_MF = (W1 @ H - X[0]) @ H.T
@@ -383,12 +384,10 @@ class SDL_BCD():
                                                      subsample_size = None)
                     W[0] /= np.linalg.norm(W[0])
 
-
                 # Code Update
                 H = update_code_within_radius(X[0], W[0], H, r=search_radius,
                                             a1=self.L1_reg[0], a2=self.L2_reg[0],
                                             nonnegativity=self.nonnegativity[0])
-
 
                 # Regression Parameters Update
                 X0_comp = W[0].T @ X[0]
@@ -396,9 +395,32 @@ class SDL_BCD():
                     #print('np.linalg.norm(X0_comp)', np.linalg.norm(X0_comp))
                     #print('np.linalg.norm(self.X_auxiliary)', np.linalg.norm(self.X_auxiliary))
                     X0_comp = np.vstack((X0_comp, self.X_auxiliary))
-                clf = LogisticRegression(random_state=0).fit(X0_comp.T, self.X[1][0,:])
-                W[1][0,1:] = clf.coef_[0]
-                W[1][0,0] = clf.intercept_[0]
+                
+                # print(f"This is X[1].shape[0]: {X[1].shape[0]}")
+                if X[1].shape[0] != 1:
+                    label_vec = np.copy(X[1])
+                    for i in range(1, X[1].shape[0]):
+                        label_vec[i, :][label_vec[i, :] == 1] = i+1
+                    label_vec = np.sum(label_vec, axis=0)
+                    clf = LogisticRegression(random_state=0).fit(X0_comp.T, label_vec)
+                    # clf is of shape [X[1].shape[0]+1, W[0].shape[1]] 
+                    # print(f"Check shape of coef: {X[1].shape[0]} and {W[0].shape[1]}")
+                    coef = np.zeros((X[1].shape[0], W[0].shape[1]))
+                    for row in range(X[1].shape[0]):
+                        coef[row] = clf.coef_[row+1] - clf.coef_[0]
+                    intercepts = np.zeros(X[1].shape[0])
+                    for i in range(X[1].shape[0]):
+                        intercepts[i] = clf.intercept_[i+1] - clf.intercept_[0]
+                    W[1][:, 1:] = coef
+                    W[1][:, 0] = intercepts
+                elif X[1].shape[0] == 1:
+                    label_vec = X[1].flatten()
+                    # print(f"label_vec's shape: {label_vec.shape}")
+                    clf = LogisticRegression(random_state=0).fit(X0_comp.T, label_vec)
+                    # print(f"coef's shape: {clf.coef_.shape}")
+                    # print(f"W[1]'s shape: {W[1].shape}")
+                    W[1][0,1:] = clf.coef_[0]
+                    W[1][0,0] = clf.intercept_[0]
 
             elif option == "feature":
                 if (step % dict_update_freq == 0):
@@ -443,76 +465,135 @@ class SDL_BCD():
             self.loading = W
             self.code = H
 
-
-            ### TODO: find a good way to report the accuracy and related things
             if (step % 10) == 0:
-                if if_compute_recons_error:
-                    # print the error every 50 iterations
-                    if self.full_dim:
-                        error_data = np.linalg.norm((X[0] - H).reshape(-1, 1), ord=2)**2
-                    else:
-                        error_data = np.linalg.norm((X[0] - W[0] @ H).reshape(-1, 1), ord=2)**2
-                    rel_error_data = error_data / np.linalg.norm(X[0].reshape(-1, 1), ord=2)**2
+                if X[1].shape[0] == 1:
+                    if if_compute_recons_error:
+                        # print the error every 50 iterations
+                        if self.full_dim:
+                            error_data = np.linalg.norm((X[0] - H).reshape(-1, 1), ord=2)**2
+                        else:
+                            error_data = np.linalg.norm((X[0] - W[0] @ H).reshape(-1, 1), ord=2)**2
+                        rel_error_data = error_data / np.linalg.norm(X[0].reshape(-1, 1), ord=2)**2
 
-                    X0_comp = W[0].T @ X[0]
-                    X0_ext = np.vstack((np.ones(X[1].shape[1]), X0_comp))
-                    if self.d3>0:
-                        X0_ext = np.vstack((X0_ext, self.X_auxiliary))
-                    P_pred = np.matmul(W[1], X0_ext)
-                    P_pred = 1 / (np.exp(-P_pred) + 1)
-                    # print('!!! error norm', np.linalg.norm(X[1][0, :]-P_pred[0,:])/X[1].shape[1])
-                    fpr, tpr, thresholds = metrics.roc_curve(X[1][0, :], P_pred[0,:], pos_label=None)
-                    mythre = thresholds[np.argmax(tpr - fpr)]
-                    myauc = metrics.auc(fpr, tpr)
-                    self.result_dict.update({'Training_threshold':mythre})
-                    self.result_dict.update({'Training_AUC':myauc})
-                    print('--- Training --- [threshold, AUC] = ', [np.round(mythre,3), np.round(myauc,3)])
-                    error_label = np.sum(np.log(1+np.exp(W[1] @ X0_ext))) - X[1] @ (W[1] @ X0_ext).T
-                    error_label = error_label[0][0]
+                        X0_comp = W[0].T @ X[0]
+                        X0_ext = np.vstack((np.ones(X[1].shape[1]), X0_comp))
+                        if self.d3>0:
+                            X0_ext = np.vstack((X0_ext, self.X_auxiliary))
+                        P_pred = np.matmul(W[1], X0_ext)
+                        P_pred = 1 / (np.exp(-P_pred) + 1)
+                        # print('!!! error norm', np.linalg.norm(X[1][0, :]-P_pred[0,:])/X[1].shape[1])
+                        fpr, tpr, thresholds = metrics.roc_curve(X[1][0, :], P_pred[0,:], pos_label=None)
+                        mythre = thresholds[np.argmax(tpr - fpr)]
+                        myauc = metrics.auc(fpr, tpr)
+                        self.result_dict.update({'Training_threshold':mythre})
+                        self.result_dict.update({'Training_AUC':myauc})
+                        print('--- Training --- [threshold, AUC] = ', [np.round(mythre,3), np.round(myauc,3)])
+                        error_label = np.sum(np.log(1+np.exp(W[1] @ X0_ext))) - X[1] @ (W[1] @ X0_ext).T
+                        error_label = error_label[0][0]
 
-                    total_error_new = error_label + self.xi * error_data
+                        total_error_new = error_label + self.xi * error_data
 
-                    time_error = np.append(time_error, np.array([[elapsed_time, error_data, error_label]]), axis=0)
-                    print('--- Iteration %i: Training loss --- [Data, Label, Total] = [%f.3, %f.3, %f.3]' % (step, error_data, error_label, total_error_new))
+                        time_error = np.append(time_error, np.array([[elapsed_time, error_data, error_label]]), axis=0)
+                        print('--- Iteration %i: Training loss --- [Data, Label, Total] = [%f.3, %f.3, %f.3]' % (step, error_data, error_label, total_error_new))
 
-                    self.result_dict.update({'Relative_reconstruction_loss (training)': rel_error_data})
-                    self.result_dict.update({'Classification_loss (training)': error_label})
-                    self.result_dict.update({'time_error': time_error.T})
+                        self.result_dict.update({'Relative_reconstruction_loss (training)': rel_error_data})
+                        self.result_dict.update({'Classification_loss (training)': error_label})
+                        self.result_dict.update({'time_error': time_error.T})
 
-                    # stopping criterion
-                    if (total_error > 0) and (total_error_new > 1.1 * total_error):
-                        print("Early stopping: training loss increased")
-                        self.result_dict.update({'iter': step})
-                        break
-                    else:
-                        total_error = total_error_new
+                        # stopping criterion
+                        if (total_error > 0) and (total_error_new > 1.1 * total_error):
+                            print("Early stopping: training loss increased")
+                            self.result_dict.update({'iter': step})
+                            break
+                        else:
+                            total_error = total_error_new
+                    if if_validate and (step>1):
+                        self.validation(result_dict = self.result_dict,
+                                        prediction_method_list=prediction_method_list,
+                                        verbose=True)
+                        threshold = self.result_dict.get('Opt_threshold')
+                        ACC = self.result_dict.get('Accuracy')
+                        if ACC>0.99:
+                            # terminate the training as soon as AUC>0.9 in order to avoid overfitting
+                            print('!!! --- Validation (Stopped) --- [threshold, ACC] = ', [np.round(threshold,3), np.round(ACC,3)])
+                            break
+                else:
+                    if if_compute_recons_error:
+                        # print the error every 50 iterations
+                        if self.full_dim:
+                            error_data = np.linalg.norm((X[0] - H).reshape(-1, 1), ord=2)**2
+                        else:
+                            error_data = np.linalg.norm((X[0] - W[0] @ H).reshape(-1, 1), ord=2)**2
+                        rel_error_data = error_data / np.linalg.norm(X[0].reshape(-1, 1), ord=2)**2
 
-            ### TODO: remember to recover the self.validation after completion
-            #     if if_validate and (step>1):
-            #         self.validation(result_dict = self.result_dict,
-            #                         prediction_method_list=prediction_method_list,
-            #                         verbose=True)
-            #         threshold = self.result_dict.get('Opt_threshold')
-            #         ACC = self.result_dict.get('Accuracy')
-            #         if ACC>0.99:
-            #             # terminate the training as soon as AUC>0.9 in order to avoid overfitting
-            #             print('!!! --- Validation (Stopped) --- [threshold, ACC] = ', [np.round(threshold,3), np.round(ACC,3)])
-            #             break
+                        X0_comp = W[0].T @ X[0]
+                        X0_ext = np.vstack((np.ones(X[1].shape[1]), X0_comp))
+                        if self.d3>0:
+                            X0_ext = np.vstack((X0_ext, self.X_auxiliary))
+                        
+                        error_label = np.sum(1 + np.sum(np.exp(W[1]@X0_ext), axis=0)) - np.trace(X[1].T @ W[1] @ X0_ext)
+                        total_error_new = error_label + self.xi * error_data
 
+                        time_error = np.append(time_error, np.array([[elapsed_time, error_data, error_label]]), axis=0)
+                        print('--- Iteration %i: Training loss --- [Data, Label, Total] = [%f.3, %f.3, %f.3]' % (step, error_data, error_label, total_error_new))
+
+                        self.result_dict.update({'Relative_reconstruction_loss (training)': rel_error_data})
+                        self.result_dict.update({'Classification_loss (training)': error_label})
+                        self.result_dict.update({'time_error': time_error.T})
+
+                        # stopping criterion
+                        if (total_error > 0) and (total_error_new > 1.2 * total_error):
+                            print("Early stopping: training loss increased")
+                            self.result_dict.update({'iter': step})
+                            break
+                        else:
+                            total_error = total_error_new
+                    if if_validate and (step>1):
+                        accuracy_result = self.validation_multi(result_dict = self.result_dict,
+                                        prediction_method_list=prediction_method_list,
+                                        verbose=True)
+                        confusion_matrix = accuracy_result.get('confusion_mx')
+                        ACC = accuracy_result.get('Accuracy')
+                        if ACC>0.99:
+                            # terminate the training as soon as AUC>0.9 in order to avoid overfitting
+                            print('!!! --- Validation (Stopped) --- [confusion_mx, Accuracy] = ', [confusion_matrix, np.round(accuracy, 3)])
+                            break
         ### fine-tune beta
         X0_comp = W[0].T @ X[0]
         if self.X_auxiliary is not None:
-            X0_comp = np.vstack((X0_comp, self.X_auxiliary[:,:]))
-        clf = LogisticRegression(random_state=0).fit(X0_comp.T, self.X[1][0,:])
-        W[1][0,1:] = clf.coef_[0]
-        W[1][0,0] = clf.intercept_[0]
+                X0_comp = np.vstack((X0_comp, self.X_auxiliary))
+        if X[1].shape[0] != 1:
+            label_vec = np.copy(X[1])
+            for i in range(1, X[1].shape[0]):
+                label_vec[i, :][label_vec[i, :] == 1] = i+1
+            label_vec = np.sum(label_vec, axis=0)
+            clf = LogisticRegression(random_state=0).fit(X0_comp.T, label_vec)
+            coef = np.zeros((X[1].shape[0], W[0].shape[1]))
+            for row in range(X[1].shape[0]):
+                coef[row] = clf.coef_[row+1] - clf.coef_[0]
+            intercepts = np.zeros(X[1].shape[0])
+            for i in range(X[1].shape[0]):
+                intercepts[i] = clf.intercept_[i+1] - clf.intercept_[0]
+            W[1][:, 1:] = coef
+            W[1][:, 0] = intercepts
+        elif X[1].shape[0] == 1:
+            label_vec = X[1].flatten()
+            clf = LogisticRegression(random_state=0).fit(X0_comp.T, label_vec)
+            W[1][0,1:] = clf.coef_[0]
+            W[1][0,0] = clf.intercept_[0]
 
-        
-        self.validation(result_dict = self.result_dict, prediction_method_list=prediction_method_list)
-        #threshold = self.result_dict.get('Opt_threshold')
-        #AUC = self.result_dict.get('AUC')
-        #print('!!! FINAL [threshold, AUC] = ', [np.round(threshold,3), np.round(AUC,3)])
-
+        # Final accuracy check
+        if X[1].shape[0] == 1:
+            self.validation(result_dict = self.result_dict, prediction_method_list=prediction_method_list)
+            threshold = self.result_dict.get('Opt_threshold')
+            AUC = self.result_dict.get('AUC')
+            print('!!! FINAL [threshold, AUC] = ', [np.round(threshold,3), np.round(AUC,3)])
+        else:
+            accuracy_result = self.validation_multi(result_dict=self.result_dict, 
+                                                    prediction_method_list=prediction_method_list)
+            confusion_matrix = accuracy_result.get('confusion_mx')
+            ACC = accuracy_result.get('Accuracy')
+            print('!!! FINAL [confusion_mx, Accuracy] = ', [confusion_matrix, np.round(ACC, 3)])
         return self.result_dict
 
     def validation(self,
@@ -528,102 +609,133 @@ class SDL_BCD():
         by two-block coordinate descent: [dict, beta] --> H, H--> [dict, beta]
         Use Logistic MF model
         '''
-        # if result_dict is None:
-        #     result_dict = self.result_dict
-        # if X_test is None:
-        #     X_test = self.X_test
-        # if X_test_aux is None:
-        #     X_test_aux = self.X_test_aux
+        if result_dict is None:
+            result_dict = self.result_dict
+        if X_test is None:
+            X_test = self.X_test
+        if X_test_aux is None:
+            X_test_aux = self.X_test_aux
 
-        # test_X = X_test[0]
-        # test_Y = X_test[1]
+        test_X = X_test[0]
+        test_Y = X_test[1]
 
-        # W = result_dict.get('loading')
-        # beta = W[1].T
-        # # pred_threshold = result_dict.get('Opt_threshold (training)')
-        # # prediction threshold learned from training data
-
-
-        # for pred_type in prediction_method_list:
-        #     print('!!! pred_type', pred_type)
-
-        #     P_pred, H_test, Y_pred = self.predict(X_test = test_X,
-        #                                     X_test_aux=X_test_aux,
-        #                                     W=W,
-        #                                     pred_threshold = None,
-        #                                     method=pred_type) #or 'exhaust' or # naive
-
-        #     fpr, tpr, thresholds = metrics.roc_curve(test_Y[0, :], P_pred, pos_label=None)
-        #     mythre_test = thresholds[np.argmax(tpr - fpr)]
-        #     myauc_test = metrics.auc(fpr, tpr)
+        W = result_dict.get('loading')
+        beta = W[1].T
+        # pred_threshold = result_dict.get('Opt_threshold (training)')
+        # prediction threshold learned from training data
 
 
-        #     mcm = confusion_matrix(test_Y[0,:], Y_pred)
-        #     tn = mcm[0, 0]
-        #     tp = mcm[1, 1]
-        #     fn = mcm[1, 0]
-        #     fp = mcm[0, 1]
+        for pred_type in prediction_method_list:
+            print('!!! pred_type', pred_type)
 
-        #     accuracy = (tp + tn) / (tp + tn + fp + fn)
-        #     misclassification = 1 - accuracy
-        #     sensitivity = tp / (tp + fn)
-        #     specificity = tn / (tn + fp)
-        #     precision = tp / (tp + fp)
-        #     recall = tp / (tp + fn)
-        #     fall_out = fp / (fp + tn)
-        #     miss_rate = fn / (fn + tp)
-        #     F_score = 2 * precision * recall / ( precision + recall )
+            P_pred, H_test, Y_pred = self.predict(X_test = test_X,
+                                            X_test_aux=X_test_aux,
+                                            W=W,
+                                            pred_threshold = None,
+                                            method=pred_type) #or 'exhaust' or # naive
 
-        #     # Compute test data reconstruction loss
-        #     H_test = self.sparse_code(X_test[0], W[0])
-        #     error_data = np.linalg.norm((X_test[0] - W[0] @ H_test).reshape(-1, 1), ord=2)
-        #     rel_error_data = error_data / np.linalg.norm(X_test[0].reshape(-1, 1), ord=2)
+            fpr, tpr, thresholds = metrics.roc_curve(test_Y[0, :], P_pred, pos_label=None)
+            mythre_test = thresholds[np.argmax(tpr - fpr)]
+            myauc_test = metrics.auc(fpr, tpr)
 
 
-        #     # Save results
-        #     result_dict.update({'Relative_reconstruction_loss (test)': rel_error_data})
-        #     result_dict.update({'Y_test': test_Y})
-        #     result_dict.update({'P_pred': P_pred})
-        #     result_dict.update({'Y_pred': Y_pred})
-        #     result_dict.update({'AUC': myauc_test})
-        #     result_dict.update({'Opt_threshold': mythre_test})
-        #     result_dict.update({'Accuracy': accuracy})
-        #     result_dict.update({'Misclassification': misclassification})
-        #     result_dict.update({'Precision': precision})
-        #     result_dict.update({'Recall': recall})
-        #     result_dict.update({'Sensitivity': sensitivity})
-        #     result_dict.update({'Specificity': specificity})
-        #     result_dict.update({'F_score': F_score})
-        #     result_dict.update({'Fall_out': fall_out})
-        #     result_dict.update({'Miss_rate': miss_rate})
+            mcm = confusion_matrix(test_Y[0,:], Y_pred)
+            tn = mcm[0, 0]
+            tp = mcm[1, 1]
+            fn = mcm[1, 0]
+            fp = mcm[0, 1]
 
-        #     if verbose:
-        #         fpr, tpr, thresholds = metrics.roc_curve(test_Y[0, :], P_pred, pos_label=None)
-        #         mythre = thresholds[np.argmax(tpr - fpr)] # optimal prediction threshold for validation
-        #         myauc = metrics.auc(fpr, tpr)
-        #         # print('--- Validation --- [threshold, AUC, accuracy] = ', [np.round(mythre,3), np.round(myauc,3), np.round(accuracy, 3)])
-        #         print('--- Validation --- [threshold, AUC, Accuracy, F score] = ', [np.round(mythre,3), np.round(myauc,3), np.round(accuracy, 3), np.round(F_score,3)])
+            accuracy = (tp + tn) / (tp + tn + fp + fn)
+            misclassification = 1 - accuracy
+            sensitivity = tp / (tp + fn)
+            specificity = tn / (tn + fp)
+            precision = tp / (tp + fp)
+            recall = tp / (tp + fn)
+            fall_out = fp / (fp + tn)
+            miss_rate = fn / (fn + tp)
+            F_score = 2 * precision * recall / ( precision + recall )
 
-        # return result_dict
-        return 
+            # Compute test data reconstruction loss
+            H_test = self.sparse_code(X_test[0], W[0])
+            error_data = np.linalg.norm((X_test[0] - W[0] @ H_test).reshape(-1, 1), ord=2)
+            rel_error_data = error_data / np.linalg.norm(X_test[0].reshape(-1, 1), ord=2)
 
 
+            # Save results
+            result_dict.update({'Relative_reconstruction_loss (test)': rel_error_data})
+            result_dict.update({'Y_test': test_Y})
+            result_dict.update({'P_pred': P_pred})
+            result_dict.update({'Y_pred': Y_pred})
+            result_dict.update({'AUC': myauc_test})
+            result_dict.update({'Opt_threshold': mythre_test})
+            result_dict.update({'Accuracy': accuracy})
+            result_dict.update({'Misclassification': misclassification})
+            result_dict.update({'Precision': precision})
+            result_dict.update({'Recall': recall})
+            result_dict.update({'Sensitivity': sensitivity})
+            result_dict.update({'Specificity': specificity})
+            result_dict.update({'F_score': F_score})
+            result_dict.update({'Fall_out': fall_out})
+            result_dict.update({'Miss_rate': miss_rate})
 
+            if verbose:
+                fpr, tpr, thresholds = metrics.roc_curve(test_Y[0, :], P_pred, pos_label=None)
+                mythre = thresholds[np.argmax(tpr - fpr)] # optimal prediction threshold for validation
+                myauc = metrics.auc(fpr, tpr)
+                # print('--- Validation --- [threshold, AUC, accuracy] = ', [np.round(mythre,3), np.round(myauc,3), np.round(accuracy, 3)])
+                print('--- Validation --- [threshold, AUC, Accuracy, F score] = ', [np.round(mythre,3), np.round(myauc,3), np.round(accuracy, 3), np.round(F_score,3)])
+
+        return result_dict
 
 
     def predict(self,
-                X_test,
+                X_test, # no Y_test included
                 X_test_aux=None,
                 W=None,
                 iter=10,
                 pred_threshold=None,
                 search_radius_const=10,
-                method='naive' #or 'exhaustive' or 'naive' or 'alt' or 'filter'
+                SMF_option='filter',
+                method='alt' # or 'exhaustive' or 'naive'
                 ):
         '''
         Given input X = [data, ??] and loading dictionary W = [dict, beta], find missing label Y and code H
         by two-block coordinate descent
         '''
+
+        W = self.loading
+        X = self.X
+        if pred_threshold is None:
+            # Get threshold from training set
+            if SMF_option == 'filter':
+                X0_comp = W[0].T @ self.X[0]
+                X0_ext = np.vstack((np.ones(X[1].shape[1]), X0_comp))
+                if self.d3>0:
+                    X0_ext = np.vstack((X0_ext, self.X_auxiliary))
+                P_pred = np.matmul(W[1], X0_ext)
+                P_pred = 1 / (np.exp(-P_pred) + 1)
+                fpr, tpr, thresholds = metrics.roc_curve(X[1][0, :], P_pred[0,:], pos_label=None)
+                pred_threshold = thresholds[np.argmax(tpr - fpr)]
+                myauc_training = metrics.auc(fpr, tpr)
+
+
+            elif SMF_option == 'feature':
+                X0_comp = self.sparse_code(X[0], W[0], nonnegativity=self.nonnegativity[0])
+                X0_ext = np.vstack((np.ones(X[1].shape[1]), X0_comp))
+                if self.d3>0:
+                    X0_ext = np.vstack((X0_ext, self.X_auxiliary))
+                P_pred = np.matmul(W[1], X0_ext)
+                P_pred = 1 / (np.exp(-P_pred) + 1)
+                # print('!!! error norm', np.linalg.norm(X[1][0, :]-P_pred[0,:])/X[1].shape[1])
+                fpr, tpr, thresholds = metrics.roc_curve(self.X[1][0, :], P_pred[0,:], pos_label=None)
+                pred_threshold = thresholds[np.argmax(tpr - fpr)]
+                myauc_training = metrics.auc(fpr, tpr)
+
+            self.result_dict.update({'Training_threshold':pred_threshold})
+            self.result_dict.update({'Training_AUC':myauc_training})
+            print('--- Training --- [threshold, AUC] = ', [np.round(pred_threshold,3), np.round(myauc_training,3)])
+
+    # Now compute accuracy metrics on test set
 
         r = self.n_components
         n = X_test.shape[1]
@@ -631,66 +743,32 @@ class SDL_BCD():
             W = self.loading
         # print("-- W[0][0,0]", np.linalg.norm(W[0][0,0]))
 
-        if pred_threshold is None:
-            if method == 'filter':
-                # Get threshold from training set
-                X0_comp = W[0].T @ self.X[0]
-                X0_ext = np.vstack((np.ones(self.X[1].shape[1]), X0_comp))
-                if self.d3>0:
-                    X0_ext = np.vstack((X0_ext, self.X_auxiliary))
-                P_pred = np.matmul(W[1], X0_ext)
-                P_pred = 1 / (np.exp(-P_pred) + 1)
-                # print('!!! error norm', np.linalg.norm(X[1][0, :]-P_pred[0,:])/X[1].shape[1])
-                fpr, tpr, thresholds = metrics.roc_curve(self.X[1][0, :], P_pred[0,:], pos_label=None)
-                pred_threshold = thresholds[np.argmax(tpr - fpr)]
-                myauc_training = metrics.auc(fpr, tpr)
-
-            else:
-                # Get threshold from training set
-                X0_comp = self.sparse_code(self.X[0], W[0])
-                X0_ext = np.vstack((np.ones(self.X[1].shape[1]), X0_comp))
-                if self.d3>0:
-                    X0_ext = np.vstack((X0_ext, self.X_auxiliary))
-                P_pred = np.matmul(W[1], X0_ext)
-                P_pred = 1 / (np.exp(-P_pred) + 1)
-                # print('!!! error norm', np.linalg.norm(X[1][0, :]-P_pred[0,:])/X[1].shape[1])
-                fpr, tpr, thresholds = metrics.roc_curve(self.X[1][0, :], P_pred[0,:], pos_label=None)
-                pred_threshold = thresholds[np.argmax(tpr - fpr)]
-                myauc_training = metrics.auc(fpr, tpr)
-
-            self.result_dict.update({'Training_threshold': pred_threshold})
-
-
-        ### Make prediction
-
-        if method == 'filter':
-            # Compute accuracy metrics for the test set
+        if SMF_option == 'filter':
             H = W[0].T @ X_test
             if X_test_aux is not None:
                 H = np.vstack((H, X_test_aux))
             H2 = np.vstack((np.ones(H.shape[1]), H))
-            P_pred = np.matmul(H2.T, W[1].T)
+            P_pred = np.matmul(W[1], H2)
             P_pred = 1 / (np.exp(-P_pred) + 1)  # predicted probability for Y_test
-
+            # threshold predictive probabilities to get predictions
             Y_hat = P_pred.copy()
             Y_hat[Y_hat < pred_threshold] = 0
             Y_hat[Y_hat >= pred_threshold] = 1
+            P_pred = P_pred[0,:]
+            Y_hat = Y_hat[0,:]
 
-            #print('P_pred.shape', P_pred.shape)
-            #print('Y_hat.shape', Y_hat.shape)
-
-        elif method == 'alt':
-            for step in range(int(iter)):
-                start = time.time()
-                # search_radius = search_radius_const * (float(step + 1)) ** (-beta) / np.log(float(step + 2))
-
-                # Update the missing label P_pred
+        elif SMF_option == 'feature':
+            if method == 'naive':
+                H = self.sparse_code(X_test, W[0], nonnegativity=self.nonnegativity[0])
+                #print('---- H naive shape', H.shape)
                 H_ext = np.vstack((np.ones(X_test.shape[1]), H))
+                if X_test_aux is not None:
+                    H_ext = np.vstack((H_ext, X_test_aux))
                 P_pred = np.matmul(W[1], H_ext)
                 P_pred = 1 / (np.exp(-P_pred) + 1)
-                X = [X_test, P_pred]
 
-                # Update code
+                # threshold predictive probabilities to get predictions
+
                 Y_hat = P_pred.copy()
                 Y_hat[Y_hat < pred_threshold] = 0
                 Y_hat[Y_hat >= pred_threshold] = 1
@@ -698,100 +776,142 @@ class SDL_BCD():
                 Y_hat = Y_hat[0,:]
 
 
-        elif method == 'naive':
-            #print('naive prection..')
+            elif method == 'alt':
+                #print('alternating prection..')
+                H = np.random.rand(r,n)
+                Y_hat = np.random.rand(self.X[1].shape[0], X_test.shape[1])
+                for step in trange(int(200)):
+                    X = [X_test, Y_hat]
 
-            # Prediction for test set
-            H = self.sparse_code(X_test, W[0])
-            #print('---- H naive shape', H.shape)
-            H_ext = np.vstack((np.ones(X_test.shape[1]), H))
-            if X_test_aux is not None:
-                H_ext = np.vstack((H_ext, X_test_aux))
-            P_pred = np.matmul(W[1], H_ext)
-            P_pred = 1 / (np.exp(-P_pred) + 1)
+                    # Update code
+                    radius = 10/(step+1)
+                    H = self.update_code_joint_logistic(X, W, H, r=radius, sub_iter = 2, stopping_diff=0.0001)
+                    # Update the missing label P_pred
+                    H_ext = np.vstack((np.ones(X_test.shape[1]), H))
 
-            # threshold predictive probabilities to get predictions
-            Y_hat = P_pred.copy()
-            Y_hat[Y_hat < pred_threshold] = 0
-            Y_hat[Y_hat >= pred_threshold] = 1
+                    if X_test_aux is not None:
+                        H_ext = np.vstack((H_ext, X_test_aux))
 
-            P_pred = P_pred[0,:]
-            Y_hat = Y_hat[0,:]
+                    P_pred = np.matmul(W[1], H_ext)
+                    P_pred = 1 / (np.exp(-P_pred) + 1)
 
-        elif method == 'alt':
-            #print('alternating prection..')
-            H = np.random.rand(r,n)
-            Y_hat = np.random.rand(self.X[1].shape[0], X_test.shape[1])
-            for step in trange(int(200)):
-                X = [X_test, Y_hat]
 
-                # Update code
-                radius = 10/(step+1)
-                H = self.update_code_joint_logistic(X, W, H, r=radius, sub_iter = 2, stopping_diff=0.0001)
-                # Update the missing label P_pred
+                    # threshold predictive probabilities to get predictions
+
+                Y_hat = P_pred
+                P_pred = P_pred[0,:]
+                Y_hat[Y_hat < pred_threshold] = 0
+                Y_hat[Y_hat >= pred_threshold] = 1
+                Y_hat = Y_hat[0,:]
+
+
+            elif method == 'exhaustive':
+                print('exhaustive prection..')
+                # Run over all possible y_hat values, do supervised sparse coding,
+                # and find the one that gives minimum loss
+                H = []
+                Y_hat = []
+                for i in trange(n):
+                    loss_list = []
+                    h_list = []
+                    x_test = X_test[:,i][:,np.newaxis]
+
+                    for j in np.arange(2):
+                        y_guess = np.asarray([[j]])
+                        x_guess = [x_test, y_guess]
+                        h = self.update_code_joint_logistic(x_guess, W, xi=self.xi, sub_iter=40,
+                                                            stopping_diff=0.001, H0=None, r=None)
+                        h_ext = np.vstack((np.ones(1), h))
+                        error_data = np.linalg.norm((x_test - W[0] @ h).reshape(-1, 1), ord=2) ** 2
+                        error_label = np.sum(np.log(1+np.exp(W[1] @ h_ext))) - y_guess @ (W[1] @ h_ext).T
+                        loss = (error_label + self.xi * error_data)[0,0]
+                        # print('[j, loss] = ', [j, loss])
+                        loss_list.append(loss)
+                        h_list.append(h)
+
+                    idx = np.argsort(loss_list)
+                    #print('loss_list', loss_list)
+                    # print('idx', idx)
+                    y_hat = idx[0]
+                    h_hat = h_list[idx[0]][:,0]
+
+                    Y_hat.append(y_hat)
+                    H.append(h_hat)
+
+                Y_hat = np.asarray(Y_hat)
+                #print('--- Y_hat', Y_hat)
+                H = np.asarray(H).T
+                H -= np.mean(H)
                 H_ext = np.vstack((np.ones(X_test.shape[1]), H))
-
-                if X_test_aux is not None:
-                    H_ext = np.vstack((H_ext, X_test_aux))
-
                 P_pred = np.matmul(W[1], H_ext)
                 P_pred = 1 / (np.exp(-P_pred) + 1)
-                Y_hat = P_pred
+                P_pred = P_pred[0,:]
 
-                # threshold predictive probabilities to get predictions
-            P_pred = P_pred[0,:]
-            Y_hat[Y_hat < pred_threshold] = 0
-            Y_hat[Y_hat >= pred_threshold] = 1
-            Y_hat = Y_hat[0,:]
+        # Compute test data reconstruction loss
+        H_test = self.sparse_code(X_test, W[0])
+        error_data = np.linalg.norm((X_test - W[0] @ H_test).reshape(-1, 1), ord=2)
+        rel_error_data = error_data / np.linalg.norm(X_test.reshape(-1, 1), ord=2)
 
-        elif method == 'exhaustive':
-            print('exhaustive prection..')
-            # Run over all possible y_hat values, do supervised sparse coding,
-            # and find the one that gives minimum loss
-            H = []
-            Y_hat = []
-            for i in trange(n):
-                loss_list = []
-                h_list = []
-                x_test = X_test[:,i][:,np.newaxis]
+        # Save results
+        self.result_dict.update({'Relative_reconstruction_loss (test)': rel_error_data})
 
-                for j in np.arange(2):
-                    y_guess = np.asarray([[j]])
-                    x_guess = [x_test, y_guess]
-                    h = self.update_code_joint_logistic(x_guess, W, xi=self.xi, sub_iter=40,
-                                                        stopping_diff=0.001, H0=None, r=None)
-                    h_ext = np.vstack((np.ones(1), h))
-                    error_data = np.linalg.norm((x_test - W[0] @ h).reshape(-1, 1), ord=2) ** 2
-                    error_label = np.sum(np.log(1+np.exp(W[1] @ h_ext))) - y_guess @ (W[1] @ h_ext).T
-                    loss = (error_label + self.xi * error_data)[0,0]
-                    # print('[j, loss] = ', [j, loss])
-                    loss_list.append(loss)
-                    h_list.append(h)
-
-                idx = np.argsort(loss_list)
-                #print('loss_list', loss_list)
-                # print('idx', idx)
-                y_hat = idx[0]
-                h_hat = h_list[idx[0]][:,0]
-
-                Y_hat.append(y_hat)
-                H.append(h_hat)
-
-            Y_hat = np.asarray(Y_hat)
-            #print('--- Y_hat', Y_hat)
-            H = np.asarray(H).T
-            H -= np.mean(H)
-            H_ext = np.vstack((np.ones(X_test.shape[1]), H))
-            P_pred = np.matmul(W[1], H_ext)
-            P_pred = 1 / (np.exp(-P_pred) + 1)
-            P_pred = P_pred[0,:]
-
-        self.result_dict.update({'code_test': H})
+        self.result_dict.update({'code_test': H_test})
         self.result_dict.update({'P_pred': P_pred})
         self.result_dict.update({'Y_hat': Y_hat})
 
         return P_pred, H, Y_hat
 
+
+    def validation_multi(self,
+                    result_dict=None,
+                    X_test = None,
+                    X_test_aux = None,
+                    sub_iter=100,
+                    verbose=False,
+                    stopping_grad_ratio=0.0001,
+                    prediction_method_list = ['filter', 'naive', 'alt', 'exhaustive']):
+        '''
+        Given input X = [data, label] and initial loading dictionary W_ini, find W = [dict, beta] and code H
+        by two-block coordinate descent: [dict, beta] --> H, H--> [dict, beta]
+        Use Logistic MF model
+        '''
+        if result_dict is None:
+            result_dict = self.result_dict
+        if X_test is None:
+            X_test = self.X_test
+        if X_test_aux is None:
+            X_test_aux = self.X_test_aux
+
+        test_X = X_test[0]
+        test_Y = X_test[1]
+
+        W = result_dict.get('loading')
+        beta = W[1].T
+        
+        for pred_type in prediction_method_list:
+            print('!!! pred_type', pred_type)
+            if pred_type == 'filter':
+                X0_comp = W[0].T @ X_test[0]
+                X0_ext = np.vstack((np.ones(X_test[1].shape[1]), X0_comp))
+                if self.d3>0:
+                    X0_ext = np.vstack((X0_ext, X_test_aux))
+                exp_numerator = np.matmul(W[1], X0_ext)
+                exp_numerator = np.exp(exp_numerator)
+                normalizer = np.zeros(X_test[0].shape[1])
+                for i in range(len(normalizer)):
+                    normalizer[i] = 1 + np.sum(exp_numerator[:, i])
+                P_pred = np.copy(exp_numerator)
+                for i in range(X_test[0].shape[1]):
+                    P_pred[:, i] = P_pred[:, i] / normalizer[i]
+                
+                accuracy_result = multiclass_accuracy_metrics(Y_test=self.X_test[1], 
+                                                            P_pred=P_pred)
+                if verbose == True:
+                    confusion_matrix = accuracy_result.get('confusion_mx')
+                    ACC = accuracy_result.get('Accuracy')
+                    print('!!! --- Validation --- [confusion_mx, Accuracy] = ', [confusion_matrix, np.round(ACC, 3)])
+        return accuracy_result
+    
 ###### Helper functions
 
 def sparseness(x):
@@ -1082,3 +1202,32 @@ def fit_MLR_GD(Y, H, W0=None, sub_iter=100, stopping_diff=0.01):
             i = i + 1
             # print('iter %i, grad_norm %f' %(i, np.linalg.norm(grad)))
         return W1
+
+def multiclass_accuracy_metrics(Y_test, P_pred, class_labels=None, use_opt_threshold=False):
+    '''
+    y_test = multiclass one-hot encoding  labels 
+    Q = predicted probability for y_test
+    compuate various classification accuracy metrics
+    '''
+    Y_test_T = Y_test.T
+    P_pred_T = P_pred.T
+    results_dict = {}
+    y_test = []
+    y_pred = []
+    
+    for i in np.arange(Y_test_T.shape[0]):
+        for j in np.arange(Y_test_T.shape[1]):
+            if Y_test_T[i,j] == 1:
+                y_test.append(1)
+            else:
+                y_test.append(0)
+            if P_pred_T[i,j] >= 0.5:
+                y_pred.append(1)
+            else:
+                y_pred.append(0)
+            
+    confusion_mx = metrics.confusion_matrix(y_test, y_pred)
+    results_dict.update({'confusion_mx':confusion_mx})
+    results_dict.update({'Accuracy':np.trace(confusion_mx)/np.sum(np.sum(confusion_mx))})
+    
+    return results_dict
