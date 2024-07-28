@@ -186,7 +186,7 @@ def display_dict_and_graph(title=None,
                     ax = fig.add_subplot(inner_grid[a, b])
                     if regression_coeff is not None:
                         # ax.set_title(str(np.round(reg_0[i+1], 8)))
-                        ax.set_title(str(np.round(regression_coeff[i+1], 8)))
+                        ax.set_title(str(np.round(regression_coeff[i+1], 3)))
                     k = int(np.sqrt(W.shape[0]))
                     A_sub = W[:,idx[i]].reshape(k,k)
                     H = nx.from_numpy_array(A_sub)
