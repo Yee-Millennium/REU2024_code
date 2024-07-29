@@ -489,7 +489,7 @@ class SDL_BCD():
                                     verbose=True)
                     threshold = self.result_dict.get('Opt_threshold')
                     ACC = self.result_dict.get('Accuracy')
-                    if ACC>0.99:
+                    if ACC>0.999999:
                         # terminate the training as soon as AUC>0.9 in order to avoid overfitting
                         print('!!! --- Validation (Stopped) --- [threshold, ACC] = ', [np.round(threshold,3), np.round(ACC,3)])
                         break
