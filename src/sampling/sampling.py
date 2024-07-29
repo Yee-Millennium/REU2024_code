@@ -3,10 +3,13 @@ from NNetwork import NNetwork as nn
 
 ### Return: a matrix of size k^2 * (len(list_graphs)*sample_size),
 ### and a vector of size len(list_graphs)*sample_size
-def sampling_SNLD(list_graphs: list, labels = None, k = 20, sample_size_list = None
-             , sample_size = 200,
-             sampling_alg = 'pivot' #RW
-             ,skip_folded_hom=True
+def sampling_sndl(list_graphs: list, 
+                  labels = None, 
+                  k = 20, 
+                  sample_size_list = None, 
+                  sample_size = 200,
+                  sampling_alg = 'pivot', #RW
+                  skip_folded_hom=True
              ):
     # list of graphs in NNetwork format
     len_networks = len(list_graphs)
@@ -41,7 +44,7 @@ def sampling_SNLD(list_graphs: list, labels = None, k = 20, sample_size_list = N
 
             X_list.append(X)
             embs_list.append(embs)
-
+    
     X_list = np.concatenate(X_list, axis=1)
 
 
@@ -49,12 +52,8 @@ def sampling_SNLD(list_graphs: list, labels = None, k = 20, sample_size_list = N
     if labels == None:
         labels = np.arange(0, len_networks, 1)
 
-    label_vec = []
-    for i in range(len_networks):
-        label_vec.append(np.full(sample_size_list[i], labels[i]).reshape(1,-1))
-
-    
-    label_vec = np.concatenate(label_vec, axis=1).reshape(-1)
+    label_vec = np.zeros((len_networks-1, sum(sample_size_list)))
+    for i in range(len_networks-1):
+        label_vec[i, sum(sample_size_list[:i+1]) : sum(sample_size_list[:(i+2)])] = 1
 
     return X_list, label_vec
-
