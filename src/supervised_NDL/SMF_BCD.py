@@ -18,6 +18,7 @@ import scipy.sparse as sp
 from sklearn.decomposition import SparseCoder
 from sklearn.linear_model import LogisticRegression
 from scipy.linalg import block_diag
+from scipy.linalg import norm
 
 
 
@@ -224,10 +225,12 @@ class SDL_BCD():
 
             # P = probability matrix, same shape as X1
             D = W0[1] @ H1_ext
-            P = np.zeros(D.shape)
+            P = np.random.rand(D.shape[0], D.shape[1])
             for i in range(D.shape[1]):
-                P[:, i] = np.exp(D[:, i]) / (1 + np.sum(np.exp(D[:, i])))
- 
+                # P[:, i] = np.exp(D[:, i]) / (1 + np.sum(np.exp(D[:, i])))
+                max_i = np.max(D[:, i])
+                P[:, i] = np.exp(D[:, i] - max_i) / (np.exp(-max_i) + np.sum(np.exp(D[:, i] - max_i)))                
+
             if not self.full_dim:
                 grad_MF = (W1 @ H - X[0]) @ H.T
                 grad_pred = X[0] @ (P-X[1]).T @ W0[1][:, 1:self.n_components+1] # exclude the first column of W[1] (intercept terms)
@@ -237,7 +240,9 @@ class SDL_BCD():
                 W1 -= (1 / (((i + 10) ** (0.5)) * (np.trace(A) + 1))) * grad
 
             if r is not None:  # usual sparse coding without radius restriction
-                d = np.linalg.norm(W1 - W0[0], 2)
+                # contains_nan = np.isnan(W1 - W0[0]).any()
+                # print("Matrix contains NaN:", contains_nan)
+                d = np.linalg.norm(W1 - W0[0], ord = 2)
                 W1 = W0[0] + (r / max(r, d)) * (W1 - W0[0])
             W0[0] = W1
 
@@ -402,7 +407,8 @@ class SDL_BCD():
                     for i in range(1, X[1].shape[0]):
                         label_vec[i, :][label_vec[i, :] == 1] = i+1
                     label_vec = np.sum(label_vec, axis=0)
-                    clf = LogisticRegression(random_state=0).fit(X0_comp.T, label_vec)
+                    print(" !!! Running LogisticRegression in sklearn")
+                    clf = LogisticRegression(random_state=0, max_iter=300).fit(X0_comp.T, label_vec)
                     # clf is of shape [X[1].shape[0]+1, W[0].shape[1]] 
                     # print(f"Check shape of coef: {X[1].shape[0]} and {W[0].shape[1]}")
                     coef = np.zeros((X[1].shape[0], W[0].shape[1]))
