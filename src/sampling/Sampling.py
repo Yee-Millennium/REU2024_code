@@ -52,8 +52,12 @@ def sampling_sndl(list_graphs: list,
     if labels == None:
         labels = np.arange(0, len_networks, 1)
 
-    label_vec = np.zeros((len_networks-1, sum(sample_size_list)))
+    label_matrix = np.zeros((len_networks-1, sum(sample_size_list)))
     for i in range(len_networks-1):
-        label_vec[i, sum(sample_size_list[:i+1]) : sum(sample_size_list[:(i+2)])] = 1
+        label_matrix[i, sum(sample_size_list[:i+1]) : sum(sample_size_list[:(i+2)])] = 1
 
+<<<<<<< Updated upstream:src/sampling/Sampling.py
     return X_list, label_vec
+=======
+    return X_list, label_matrix
+>>>>>>> Stashed changes:src/sampling/sampling.py
