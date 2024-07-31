@@ -206,7 +206,8 @@ def display_dict_and_graph(title=None,
                             ax2.bar(j, 1, color=base_color(color_value+0.2), align='center', width=1)
                             ax2.set_xticks([])  # Remove x ticks
                             ax2.set_yticks([])  # Remove y ticks
-                            ax2.text(j, 0.5, j+1, ha='center', va='center', color='black', fontsize=12)
+                            description = str(j+1) + ": " + str(np.round(coeff[j], 2))
+                            ax2.text(j, 0.5, description, ha='center', va='center', color='red', fontsize=12)
                             # ax2.spines['top'].set_visible(False)
                             # ax2.spines['right'].set_visible(False)
                             # ax2.spines['bottom'].set_visible(False)
