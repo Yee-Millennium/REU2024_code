@@ -472,7 +472,6 @@ class SDL_BCD():
                     for i in range(1, X[1].shape[0]):
                         label_vec[i, :][label_vec[i, :] == 1] = i+1
                     label_vec = np.sum(label_vec, axis=0)
-                    print(" !!! Running LogisticRegression in sklearn")
                     clf = LogisticRegression(random_state=0, max_iter=300).fit(X0_comp.T, label_vec)
                     # clf is of shape [X[1].shape[0]+1, W[0].shape[1]] 
                     # print(f"Check shape of coef: {X[1].shape[0]} and {W[0].shape[1]}")
