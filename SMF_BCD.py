@@ -64,7 +64,7 @@ class SDL_BCD():
         self.d3 = 0 # auxiliary data dim
         self.nonnegativity = nonnegativity
         if X_auxiliary is not None:
-            print(X_auxiliary)
+            # print(X_auxiliary)
             self.d3 = X_auxiliary.shape[0]
             if ini_loading is not None:
                 Beta_aux = np.zeros((X[1].shape[0], n_components + 1 + self.d3))
@@ -82,7 +82,7 @@ class SDL_BCD():
         self.loading = ini_loading
         if ini_loading is None:
             d1, n = X[0].shape
-            print(X[1].shape)
+            # print(X[1].shape)
             d2, n = X[1].shape
             # if len(X[1].shape) == 1:
             #     d2, n = X[1].shape, 1
@@ -91,7 +91,7 @@ class SDL_BCD():
             r = n_components
             self.loading = [np.random.rand(X[0].shape[0], r), 1-2*np.random.rand(X[1].shape[0], r + 1 + self.d3)]  # additional first column for constant terms in Logistic Regression
             # add additional d3 columns of regression coefficients for the auxiliary variables
-        print('initial loading beta', self.loading[1])
+        # print('initial loading beta', self.loading[1])
 
         self.xi = xi
         self.L1_reg = L1_reg
@@ -123,10 +123,10 @@ class SDL_BCD():
 
 
 
-        if DEBUG:
-            print('sparse_code')
-            print('X.shape:', X.shape)
-            print('W.shape:', W.shape, '\n')
+        # if DEBUG:
+            # print('sparse_code')
+            # print('X.shape:', X.shape)
+            # print('W.shape:', W.shape, '\n')
 
         # initialize the SparseCoder with W as its dictionary
         # then find H such that X \approx W*H
@@ -198,7 +198,7 @@ class SDL_BCD():
 
         if W0 is None:
             W0 = np.random.rand(X[0].shape[0], self.n_components)
-            print('!!! W0.shape', W0.shape)
+            # print('!!! W0.shape', W0.shape)
 
         #if not self.full_dim:
         A = H @ H.T
@@ -424,7 +424,7 @@ class SDL_BCD():
 
             if update_nuance_param:
                 self.xi = (1/(2*r*n)) * np.linalg.norm((X[0] - W[0] @ H).reshape(-1, 1), ord=2)**2
-                print('xi updated by MLE:', self.xi)
+                # print('xi updated by MLE:', self.xi)
 
             end = time.time()
             elapsed_time += end - start
@@ -461,14 +461,14 @@ class SDL_BCD():
                     myauc = metrics.auc(fpr, tpr)
                     self.result_dict.update({'Training_threshold':mythre})
                     self.result_dict.update({'Training_AUC':myauc})
-                    print('--- Training --- [threshold, AUC] = ', [np.round(mythre,3), np.round(myauc,3)])
+                    # print('--- Training --- [threshold, AUC] = ', [np.round(mythre,3), np.round(myauc,3)])
                     error_label = np.sum(np.log(1+np.exp(W[1] @ X0_ext))) - X[1] @ (W[1] @ X0_ext).T
                     error_label = error_label[0][0]
 
                     total_error_new = error_label + self.xi * error_data
 
                     time_error = np.append(time_error, np.array([[elapsed_time, error_data, error_label]]), axis=0)
-                    print('--- Iteration %i: Training loss --- [Data, Label, Total] = [%f.3, %f.3, %f.3]' % (step, error_data, error_label, total_error_new))
+                    # print('--- Iteration %i: Training loss --- [Data, Label, Total] = [%f.3, %f.3, %f.3]' % (step, error_data, error_label, total_error_new))
 
                     self.result_dict.update({'Relative_reconstruction_loss (training)': rel_error_data})
                     self.result_dict.update({'Classification_loss (training)': error_label})
@@ -476,7 +476,7 @@ class SDL_BCD():
 
                     # stopping criterion
                     if (total_error > 0) and (total_error_new > 1.1 * total_error):
-                        print("Early stopping: training loss increased")
+                        # print("Early stopping: training loss increased")
                         self.result_dict.update({'iter': step})
                         break
                     else:
@@ -491,7 +491,7 @@ class SDL_BCD():
                     ACC = self.result_dict.get('Accuracy')
                     if ACC>0.999999:
                         # terminate the training as soon as AUC>0.9 in order to avoid overfitting
-                        print('!!! --- Validation (Stopped) --- [threshold, ACC] = ', [np.round(threshold,3), np.round(ACC,3)])
+                        # print('!!! --- Validation (Stopped) --- [threshold, ACC] = ', [np.round(threshold,3), np.round(ACC,3)])
                         break
 
         ### fine-tune beta
@@ -539,7 +539,7 @@ class SDL_BCD():
 
 
         for pred_type in prediction_method_list:
-            print('!!! pred_type', pred_type)
+            # print('!!! pred_type', pred_type)
 
             P_pred, H_test, Y_pred = self.predict(X_test = test_X,
                                             X_test_aux=X_test_aux,
@@ -596,7 +596,7 @@ class SDL_BCD():
                 mythre = thresholds[np.argmax(tpr - fpr)] # optimal prediction threshold for validation
                 myauc = metrics.auc(fpr, tpr)
                 # print('--- Validation --- [threshold, AUC, accuracy] = ', [np.round(mythre,3), np.round(myauc,3), np.round(accuracy, 3)])
-                print('--- Validation --- [threshold, AUC, Accuracy, F score] = ', [np.round(mythre,3), np.round(myauc,3), np.round(accuracy, 3), np.round(F_score,3)])
+                # print('--- Validation --- [threshold, AUC, Accuracy, F score] = ', [np.round(mythre,3), np.round(myauc,3), np.round(accuracy, 3), np.round(F_score,3)])
 
         return result_dict
 
@@ -1535,14 +1535,14 @@ class SDL_BCD():
                     myauc = metrics.auc(fpr, tpr)
                     self.result_dict.update({'Training_threshold':mythre})
                     self.result_dict.update({'Training_AUC':myauc})
-                    print('--- Training --- [threshold, AUC] = ', [np.round(mythre,3), np.round(myauc,3)])
+                    # print('--- Training --- [threshold, AUC] = ', [np.round(mythre,3), np.round(myauc,3)])
                     error_label = np.sum(np.log(1+np.exp(W[1] @ X0_ext))) - X[1] @ (W[1] @ X0_ext).T
                     error_label = error_label[0][0]
 
                     total_error_new = error_label + self.xi * error_data
 
                     time_error = np.append(time_error, np.array([[elapsed_time, error_data, error_label]]), axis=0)
-                    print('--- Iteration %i: Training loss --- [Data, Label, Total] = [%f.3, %f.3, %f.3]' % (step, error_data, error_label, total_error_new))
+                    # print('--- Iteration %i: Training loss --- [Data, Label, Total] = [%f.3, %f.3, %f.3]' % (step, error_data, error_label, total_error_new))
 
                     self.result_dict.update({'Relative_reconstruction_loss (training)': rel_error_data})
                     self.result_dict.update({'Classification_loss (training)': error_label})
@@ -1550,7 +1550,7 @@ class SDL_BCD():
 
                     # stopping criterion
                     if (total_error > 0) and (total_error_new > 1.1 * total_error):
-                        print("Early stopping: training loss increased")
+                        # print("Early stopping: training loss increased")
                         self.result_dict.update({'iter': step})
                         break
                     else:
@@ -1565,7 +1565,7 @@ class SDL_BCD():
                     ACC = self.result_dict.get('Accuracy')
                     if ACC>0.99:
                         # terminate the training as soon as AUC>0.9 in order to avoid overfitting
-                        print('!!! --- Validation (Stopped) --- [threshold, ACC] = ', [np.round(threshold,3), np.round(ACC,3)])
+                        # print('!!! --- Validation (Stopped) --- [threshold, ACC] = ', [np.round(threshold,3), np.round(ACC,3)])
                         break
 
         ### fine-tune beta
@@ -1613,7 +1613,7 @@ class SDL_BCD():
 
 
         for pred_type in prediction_method_list:
-            print('!!! pred_type', pred_type)
+            # print('!!! pred_type', pred_type)
 
             P_pred, H_test, Y_pred = self.predict(X_test = test_X,
                                             X_test_aux=X_test_aux,
@@ -1670,7 +1670,7 @@ class SDL_BCD():
                 mythre = thresholds[np.argmax(tpr - fpr)] # optimal prediction threshold for validation
                 myauc = metrics.auc(fpr, tpr)
                 # print('--- Validation --- [threshold, AUC, accuracy] = ', [np.round(mythre,3), np.round(myauc,3), np.round(accuracy, 3)])
-                print('--- Validation --- [threshold, AUC, Accuracy, F score] = ', [np.round(mythre,3), np.round(myauc,3), np.round(accuracy, 3), np.round(F_score,3)])
+                # print('--- Validation --- [threshold, AUC, Accuracy, F score] = ', [np.round(mythre,3), np.round(myauc,3), np.round(accuracy, 3), np.round(F_score,3)])
 
         return result_dict
 

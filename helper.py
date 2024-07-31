@@ -7,7 +7,7 @@ import itertools
 import os
 
 def similarity(network1, network2, k = 30, xi = 5, n_components = 16):
-    Output = live_sample(network1, network2, k = k)
+    Output = live_sample(network1, network2, k = k, skip_folded_hom = False)
     X = Output[0]
     Y = Output[1][:, np.newaxis]
     Xtest, Ytest = X, Y
