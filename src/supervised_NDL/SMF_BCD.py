@@ -594,36 +594,36 @@ class SDL_BCD():
                             print('!!! --- Validation (Stopped) --- [threshold, ACC] = ', [np.round(threshold,3), np.round(ACC,3)])
                             break
                 else:
-                    # if if_compute_recons_error:
-                    #     # print the error every 50 iterations
-                    #     if self.full_dim:
-                    #         error_data = np.linalg.norm((X[0] - H).reshape(-1, 1), ord=2)**2
-                    #     else:
-                    #         error_data = np.linalg.norm((X[0] - W[0] @ H).reshape(-1, 1), ord=2)**2
-                    #     rel_error_data = error_data / np.linalg.norm(X[0].reshape(-1, 1), ord=2)**2
+                    if if_compute_recons_error:
+                        # print the error every 50 iterations
+                        if self.full_dim:
+                            error_data = np.linalg.norm((X[0] - H).reshape(-1, 1), ord=2)**2
+                        else:
+                            error_data = np.linalg.norm((X[0] - W[0] @ H).reshape(-1, 1), ord=2)**2
+                        rel_error_data = error_data / np.linalg.norm(X[0].reshape(-1, 1), ord=2)**2
 
-                    #     X0_comp = W[0].T @ X[0]
-                    #     X0_ext = np.vstack((np.ones(X[1].shape[1]), X0_comp))
-                    #     if self.d3>0:
-                    #         X0_ext = np.vstack((X0_ext, self.X_auxiliary))
+                        X0_comp = W[0].T @ X[0]
+                        X0_ext = np.vstack((np.ones(X[1].shape[1]), X0_comp))
+                        if self.d3>0:
+                            X0_ext = np.vstack((X0_ext, self.X_auxiliary))
 
-                    #     error_label = np.sum(1 + np.sum(np.exp(W[1]@X0_ext), axis=0)) - np.trace(X[1].T @ W[1] @ X0_ext)
-                    #     total_error_new = error_label + self.xi * error_data
+                        error_label = np.sum(1 + np.sum(np.exp(W[1]@X0_ext), axis=0)) - np.trace(X[1].T @ W[1] @ X0_ext)
+                        total_error_new = error_label + self.xi * error_data
             
-                    #     time_error = np.append(time_error, np.array([[elapsed_time, error_data, error_label]]), axis=0)
-                    #     print('--- Iteration %i: Training loss --- [Data, Label, Total] = [%f.3, %f.3, %f.3]' % (step, error_data, error_label, total_error_new))
+                        time_error = np.append(time_error, np.array([[elapsed_time, error_data, error_label]]), axis=0)
+                        print('--- Iteration %i: Training loss --- [Data, Label, Total] = [%f.3, %f.3, %f.3]' % (step, error_data, error_label, total_error_new))
 
-                    #     self.result_dict.update({'Relative_reconstruction_loss (training)': rel_error_data})
-                    #     self.result_dict.update({'Classification_loss (training)': error_label})
-                    #     self.result_dict.update({'time_error': time_error.T})
+                        self.result_dict.update({'Relative_reconstruction_loss (training)': rel_error_data})
+                        self.result_dict.update({'Classification_loss (training)': error_label})
+                        self.result_dict.update({'time_error': time_error.T})
 
-                    #     # stopping criterion
-                    #     if (total_error > 0) and (total_error_new > 1.1 * total_error):
-                    #         print("Early stopping: training loss increased")
-                    #         self.result_dict.update({'iter': step})
-                    #         break
-                    #     else:
-                    #         total_error = total_error_new
+                        # stopping criterion
+                        if (total_error > 0) and (total_error_new > 1.1 * total_error):
+                            print("Early stopping: training loss increased")
+                            self.result_dict.update({'iter': step})
+                            break
+                        else:
+                            total_error = total_error_new
                     if if_validate and (step>1):
                         accuracy_result = self.validation_multi(result_dict = self.result_dict,
                                         prediction_method_list=prediction_method_list,
