@@ -208,8 +208,7 @@ def display_dict_and_graph(title=None,
                             ax2.bar(j, 1, color=base_color(color_value+0.2), align='center', width=1)
                             ax2.set_xticks([])  # Remove x ticks
                             ax2.set_yticks([])  # Remove y ticks
-                            description = str(j+1) + ": " + str(np.round(coeff[j], 2))
-                            ax2.text(j, 0.5, description, ha='center', va='center', color='white', fontsize=12)
+                            ax2.text(j, 0.5, np.round(coeff[j], 2), ha='center', va='center', color='white', fontsize=12)
                             # ax2.spines['top'].set_visible(False)
                             # ax2.spines['right'].set_visible(False)
                             # ax2.spines['bottom'].set_visible(False)
@@ -240,6 +239,11 @@ def display_dict_and_graph(title=None,
                         ax.xaxis.set_label_coords(0.5, -0.05)  # adjust location of importance appearing beneath patches
 #                     ax.set_xticks([])
 #                     ax.set_yticks([])
+
+        # ax_bar= fig.add_subplot(10, 2, 10)
+        # sm = ScalarMappable(norm=norm, cmap=plt.cm.viridis)
+        # cbar = fig.colorbar(sm, ax_bar, orientation='horizontal', pad=0.01, location = 'bottom')
+        # cbar.set_label('Regression Coefficient Value')
 
         if title is not None:
             plt.suptitle(title, fontsize=25)
