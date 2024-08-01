@@ -6,6 +6,8 @@ import networkx as nx
 
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+from matplotlib.cm import ScalarMappable
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from sklearn import svm
 from sklearn import metrics, model_selection
@@ -191,7 +193,7 @@ def display_dict_and_graph(title=None,
                         # Get the regression coefficient for this subplot
                         coeff = regression_coeff[i+1]
                         # Base color (blue in different shades)
-                        base_color = plt.cm.Blues  # Using the Blues colormap       
+                        base_color = plt.cm.viridis  # Blues    
                         # Normalize the coefficient for color mapping
                         # Make sure that larger coefficients get a larger value after normalization
                         min_limit = np.percentile(regression_coeff, 10)  # Tighter range for better contrast
@@ -207,7 +209,7 @@ def display_dict_and_graph(title=None,
                             ax2.set_xticks([])  # Remove x ticks
                             ax2.set_yticks([])  # Remove y ticks
                             description = str(j+1) + ": " + str(np.round(coeff[j], 2))
-                            ax2.text(j, 0.5, description, ha='center', va='center', color='red', fontsize=12)
+                            ax2.text(j, 0.5, description, ha='center', va='center', color='white', fontsize=12)
                             # ax2.spines['top'].set_visible(False)
                             # ax2.spines['right'].set_visible(False)
                             # ax2.spines['bottom'].set_visible(False)
@@ -238,6 +240,7 @@ def display_dict_and_graph(title=None,
                         ax.xaxis.set_label_coords(0.5, -0.05)  # adjust location of importance appearing beneath patches
 #                     ax.set_xticks([])
 #                     ax.set_yticks([])
+
         if title is not None:
             plt.suptitle(title, fontsize=25)
         fig.subplots_adjust(left=0.1, bottom=0.1, right=0.9, top=0.9, wspace=0.2, hspace=0)
