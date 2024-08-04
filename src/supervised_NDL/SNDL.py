@@ -8,6 +8,7 @@ def sndl_equalEdge(graph_list,
                    sample_size_list = None,
                    k = 16, 
                    xi = 5, 
+                   threshold = 0.5,
                    n_components=16, 
                    iter = 250, 
                    base_sample_size = 500,
@@ -57,7 +58,7 @@ def sndl_equalEdge(graph_list,
     SMF_Train = SMF_BCD.SDL_BCD([X, y], X_test=[X, y], xi= xi, n_components=n_components)
     results_dict = SMF_Train.fit(iter=iter, subsample_size=None,# search_radius_const=200*np.linalg.norm(X),
                                 if_compute_recons_error=if_compute_recons_error, if_validate=
-                                if_validate)
+                                if_validate, threshold=threshold)
     
     W = results_dict.get('loading')[0]
     beta= results_dict.get('loading')[1]
