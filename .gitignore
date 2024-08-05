@@ -26,5 +26,12 @@ util/__pycache__/plotting.cpython-312.pyc
 *.pyc
 /SCMF
 util/__pycache__/plotting.cpython-312.pyc
+<<<<<<< Updated upstream
 sampling.ipynb
+=======
+/Hanbaek_ML_notes
+Hanbaek_ML_notes/Math156_UCLA_SP21/
+util/__pycache__/plotting.cpython-312.pyc
+/Math444_GNiDS
+>>>>>>> Stashed changes
 test.ipynb
