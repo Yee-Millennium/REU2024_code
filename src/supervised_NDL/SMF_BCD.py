@@ -18,6 +18,7 @@ import scipy.sparse as sp
 from sklearn.decomposition import SparseCoder
 from sklearn.linear_model import LogisticRegression
 from scipy.linalg import block_diag
+from scipy.linalg import norm
 
 
 
@@ -224,10 +225,12 @@ class SDL_BCD():
 
             # P = probability matrix, same shape as X1
             D = W0[1] @ H1_ext
-            P = np.zeros(D.shape)
+            P = np.random.rand(D.shape[0], D.shape[1])
             for i in range(D.shape[1]):
-                P[:, i] = np.exp(D[:, i]) / (1 + np.sum(np.exp(D[:, i])))
- 
+                # P[:, i] = np.exp(D[:, i]) / (1 + np.sum(np.exp(D[:, i])))
+                max_i = np.max(D[:, i])
+                P[:, i] = np.exp(D[:, i] - max_i) / (np.exp(-max_i) + np.sum(np.exp(D[:, i] - max_i)))                
+
             if not self.full_dim:
                 grad_MF = (W1 @ H - X[0]) @ H.T
                 grad_pred = X[0] @ (P-X[1]).T @ W0[1][:, 1:self.n_components+1] # exclude the first column of W[1] (intercept terms)
@@ -237,7 +240,9 @@ class SDL_BCD():
                 W1 -= (1 / (((i + 10) ** (0.5)) * (np.trace(A) + 1))) * grad
 
             if r is not None:  # usual sparse coding without radius restriction
-                d = np.linalg.norm(W1 - W0[0], 2)
+                # contains_nan = np.isnan(W1 - W0[0]).any()
+                # print("Matrix contains NaN:", contains_nan)
+                d = np.linalg.norm(W1 - W0[0], ord = 2)
                 W1 = W0[0] + (r / max(r, d)) * (W1 - W0[0])
             W0[0] = W1
 
@@ -250,8 +255,6 @@ class SDL_BCD():
             # H1_old = H1
             i = i + 1
             # print('!!!! i', i)  # mostly the loop finishes at i=1 except the first round
-
-
         return W1
         
         
@@ -321,9 +324,76 @@ class SDL_BCD():
 
         return H1
 
+    def update_beta_joint_logistic(self, 
+                                   X, H, W0, r, 
+                                   a1=0, a2=0, 
+                                   sub_iter=2, 
+                                   stopping_diff=0.1, 
+                                   nonnegativity=True, 
+                                   subsample_size=None):
+        '''
+        X = [X0, X1]
+        W = [W0, W1+W2]
+        Find \hat{W} = argmin_W ( || X0 - W0 H||^2 + alpha|H| + Logistic_Loss(W[0].T @ X1, W[1])) within radius r from W0
+        Compressed data = W[0].T @ X0 instead of H
+        '''
+        if W0 is None:
+            W0 = np.random.rand(X[0].shape[0], self.n_components)
+            print('!!! W0.shape', W0.shape)
 
+         #if not self.full_dim:
+        A = H @ H.T
+
+        W1 = W0[1].copy()  ### beta
+        i = 0
+        dist = 1
+
+        while (i < sub_iter) and (dist > stopping_diff):
+            W1_old = W1.copy()
+            # Regression Parameters Update
+
+            X0_comp = W0[0].T @ X[0]
+            H1_ext = np.vstack((np.ones(X[1].shape[1]), X0_comp))
+            if self.X_auxiliary is not None:
+                H1_ext = np.vstack((H1_ext, self.X_auxiliary[:,:]))
+                # add additional rows for the auxiliary explanatory variables
+
+            # P = probability matrix, same shape as X1
+            D = W0[1] @ H1_ext
+            P = np.random.rand(D.shape[0], D.shape[1])
+            for i in range(D.shape[1]):
+                # P[:, i] = np.exp(D[:, i]) / (1 + np.sum(np.exp(D[:, i])))
+                max_i = np.max(D[:, i])
+                P[:, i] = np.exp(D[:, i] - max_i) / (np.exp(-max_i) + np.sum(np.exp(D[:, i] - max_i)))                
+
+            if not self.full_dim:
+                grad_pred = W0[0].T @ X[0] @ (P-X[1]).T # exclude the first column of W[1] (intercept terms)
+                grad = grad_pred.T + a1 * np.sign(W1[:, 1:])*np.ones(shape=(W1.shape[0], W1.shape[1]-1)) + a2 * W1[:, 1:]
+                # grad = grad_MF
+
+                W1[:, 1:] -= (1 / (((i + 10) ** (0.5)) * (np.trace(A) + 1))) * grad
+
+            if r is not None:  # usual sparse coding without radius restriction
+                # contains_nan = np.isnan(W1 - W0[0]).any()
+                # print("Matrix contains NaN:", contains_nan)
+                d = np.linalg.norm(W1 - W0[1], ord = 2)
+                W1 = W0[1] + (r / max(r, d)) * (W1 - W0[1])
+            W0[1] = W1
+
+            if nonnegativity:
+                W1 = np.maximum(W1, np.zeros(shape=W1.shape))  # nonnegativity constraint
+
+            dist = np.linalg.norm(W1 - W1_old, 2) / np.linalg.norm(W1_old, 2)
+            dist = 1
+            # print('!!! dist', dist)
+            # H1_old = H1
+            i = i + 1
+            # print('!!!! i', i)  # mostly the loop finishes at i=1 except the first round
+        return W1
+    
     def fit(self,
-            option = "filter", #or "feature"
+            option = "filter", #or "feature",
+            threshhold = 0.5,
             iter=100,
             beta=1,
             dict_update_freq=1,
@@ -402,7 +472,7 @@ class SDL_BCD():
                     for i in range(1, X[1].shape[0]):
                         label_vec[i, :][label_vec[i, :] == 1] = i+1
                     label_vec = np.sum(label_vec, axis=0)
-                    clf = LogisticRegression(random_state=0).fit(X0_comp.T, label_vec)
+                    clf = LogisticRegression(random_state=0, max_iter=300).fit(X0_comp.T, label_vec)
                     # clf is of shape [X[1].shape[0]+1, W[0].shape[1]] 
                     # print(f"Check shape of coef: {X[1].shape[0]} and {W[0].shape[1]}")
                     coef = np.zeros((X[1].shape[0], W[0].shape[1]))
@@ -413,6 +483,11 @@ class SDL_BCD():
                         intercepts[i] = clf.intercept_[i+1] - clf.intercept_[0]
                     W[1][:, 1:] = coef
                     W[1][:, 0] = intercepts
+                    # W[1] = self.update_beta_joint_logistic(X, H, W, stopping_diff=0.0001,
+                    #                                  sub_iter = 5,
+                    #                                  r=search_radius, nonnegativity=self.nonnegativity[1],
+                    #                                  a1=self.L1_reg[1], a2=self.L2_reg[1],
+                    #                                  subsample_size = None)
                 elif X[1].shape[0] == 1:
                     label_vec = X[1].flatten()
                     # print(f"label_vec's shape: {label_vec.shape}")
@@ -530,10 +605,10 @@ class SDL_BCD():
                         X0_ext = np.vstack((np.ones(X[1].shape[1]), X0_comp))
                         if self.d3>0:
                             X0_ext = np.vstack((X0_ext, self.X_auxiliary))
-                        
+
                         error_label = np.sum(1 + np.sum(np.exp(W[1]@X0_ext), axis=0)) - np.trace(X[1].T @ W[1] @ X0_ext)
                         total_error_new = error_label + self.xi * error_data
-
+            
                         time_error = np.append(time_error, np.array([[elapsed_time, error_data, error_label]]), axis=0)
                         print('--- Iteration %i: Training loss --- [Data, Label, Total] = [%f.3, %f.3, %f.3]' % (step, error_data, error_label, total_error_new))
 
@@ -551,12 +626,12 @@ class SDL_BCD():
                     if if_validate and (step>1):
                         accuracy_result = self.validation_multi(result_dict = self.result_dict,
                                         prediction_method_list=prediction_method_list,
-                                        verbose=True)
+                                        verbose=True, threshhold=threshhold)
                         confusion_matrix = accuracy_result.get('confusion_mx')
                         ACC = accuracy_result.get('Accuracy')
                         if ACC>0.99:
                             # terminate the training as soon as AUC>0.9 in order to avoid overfitting
-                            print('!!! --- Validation (Stopped) --- [confusion_mx, Accuracy] = ', [confusion_matrix, np.round(accuracy, 3)])
+                            print('!!! --- Validation (Stopped) --- [confusion_mx, Accuracy] = ', [confusion_matrix, np.round(ACC, 3)])
                             break
         ### fine-tune beta
         X0_comp = W[0].T @ X[0]
@@ -590,7 +665,7 @@ class SDL_BCD():
             print('!!! FINAL [threshold, AUC] = ', [np.round(threshold,3), np.round(AUC,3)])
         else:
             accuracy_result = self.validation_multi(result_dict=self.result_dict, 
-                                                    prediction_method_list=prediction_method_list)
+                                                    prediction_method_list=prediction_method_list, threshhold=threshhold)
             confusion_matrix = accuracy_result.get('confusion_mx')
             ACC = accuracy_result.get('Accuracy')
             print('!!! FINAL [confusion_mx, Accuracy] = ', [confusion_matrix, np.round(ACC, 3)])
@@ -863,6 +938,7 @@ class SDL_BCD():
 
 
     def validation_multi(self,
+                         threshhold = 0.5, 
                     result_dict=None,
                     X_test = None,
                     X_test_aux = None,
@@ -905,7 +981,7 @@ class SDL_BCD():
                     P_pred[:, i] = P_pred[:, i] / normalizer[i]
                 
                 accuracy_result = multiclass_accuracy_metrics(Y_test=self.X_test[1], 
-                                                            P_pred=P_pred)
+                                                            P_pred=P_pred, threshhold=threshhold)
                 if verbose == True:
                     confusion_matrix = accuracy_result.get('confusion_mx')
                     ACC = accuracy_result.get('Accuracy')
@@ -1203,7 +1279,7 @@ def fit_MLR_GD(Y, H, W0=None, sub_iter=100, stopping_diff=0.01):
             # print('iter %i, grad_norm %f' %(i, np.linalg.norm(grad)))
         return W1
 
-def multiclass_accuracy_metrics(Y_test, P_pred, class_labels=None, use_opt_threshold=False):
+def multiclass_accuracy_metrics(Y_test, P_pred, threshhold = 0.5, class_labels=None, use_opt_threshold=False):
     '''
     y_test = multiclass one-hot encoding  labels 
     Q = predicted probability for y_test
@@ -1221,7 +1297,7 @@ def multiclass_accuracy_metrics(Y_test, P_pred, class_labels=None, use_opt_thres
                 y_test.append(1)
             else:
                 y_test.append(0)
-            if P_pred_T[i,j] >= 0.5:
+            if P_pred_T[i,j] >= threshhold:
                 y_pred.append(1)
             else:
                 y_pred.append(0)

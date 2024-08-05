@@ -6,6 +6,8 @@ import networkx as nx
 
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+from matplotlib.cm import ScalarMappable
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from sklearn import svm
 from sklearn import metrics, model_selection
@@ -171,7 +173,7 @@ def display_dict_and_graph(title=None,
                 for i in range(rows * cols):
                     a = i // cols
                     b = i % cols
-                    ax = fig.add_subplot(inner_grid[a, b])
+                    ax= fig.add_subplot(inner_grid[a, b])
                     ax.imshow(W.T[idx[i]].reshape(k, k), cmap="gray_r", interpolation='nearest')
                     # ax.set_xlabel('%1.2f' % importance[idx[i]], fontsize=13)  # get the largest first
                     # ax.xaxis.set_label_coords(0.5, -0.05)  # adjust location of importance appearing beneath patches
@@ -186,7 +188,32 @@ def display_dict_and_graph(title=None,
                     ax = fig.add_subplot(inner_grid[a, b])
                     if regression_coeff is not None:
                         # ax.set_title(str(np.round(reg_0[i+1], 8)))
-                        ax.set_title(str(np.round(regression_coeff[i+1], 3)))
+                        # ax.set_title(str(np.round(regression_coeff[i+1], 3)))
+
+                        # Get the regression coefficient for this subplot
+                        coeff = regression_coeff[i+1]
+                        # Base color (blue in different shades)
+                        base_color = plt.cm.viridis  # Blues    
+                        # Normalize the coefficient for color mapping
+                        # Make sure that larger coefficients get a larger value after normalization
+                        min_limit = np.percentile(regression_coeff, 10)  # Tighter range for better contrast
+                        max_limit = np.percentile(regression_coeff, 90)
+                        norm = plt.Normalize((min_limit), np.max(max_limit))
+                        # Create a bar in the subplot's title position
+                        ax2 = ax.inset_axes([0.1, 1, 1, 0.1])  # Adjust these dimensions as needed
+                        # Remove x-axis details from the title bar
+                        ax2.axis('off')
+                        for j, value in enumerate(zip(coeff)):
+                            color_value = norm(value)  # Normalize based on numerical value
+                            ax2.bar(j, 1, color=base_color(color_value+0.2), align='center', width=1)
+                            ax2.set_xticks([])  # Remove x ticks
+                            ax2.set_yticks([])  # Remove y ticks
+                            ax2.text(j, 0.5, np.round(coeff[j], 2), ha='center', va='center', color='white', fontsize=12)
+                            # ax2.spines['top'].set_visible(False)
+                            # ax2.spines['right'].set_visible(False)
+                            # ax2.spines['bottom'].set_visible(False)
+                            # ax2.spines['left'].set_visible(False)
+        
                     k = int(np.sqrt(W.shape[0]))
                     A_sub = W[:,idx[i]].reshape(k,k)
                     H = nx.from_numpy_array(A_sub)
@@ -212,6 +239,12 @@ def display_dict_and_graph(title=None,
                         ax.xaxis.set_label_coords(0.5, -0.05)  # adjust location of importance appearing beneath patches
 #                     ax.set_xticks([])
 #                     ax.set_yticks([])
+
+        # ax_bar= fig.add_subplot(10, 2, 10)
+        # sm = ScalarMappable(norm=norm, cmap=plt.cm.viridis)
+        # cbar = fig.colorbar(sm, ax_bar, orientation='horizontal', pad=0.01, location = 'bottom')
+        # cbar.set_label('Regression Coefficient Value')
+
         if title is not None:
             plt.suptitle(title, fontsize=25)
         fig.subplots_adjust(left=0.1, bottom=0.1, right=0.9, top=0.9, wspace=0.2, hspace=0)

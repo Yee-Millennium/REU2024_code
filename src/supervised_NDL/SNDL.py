@@ -11,7 +11,9 @@ def sndl_equalEdge(graph_list,
                    n_components=16, 
                    iter = 250, 
                    base_sample_size = 500,
-                   subsample_number = 300):
+                   subsample_number = 300,
+                   if_compute_recons_error=False, 
+                   if_validate=False):
     '''
     args:
         graph_list: graphs which we do supervised network dictionary learning task on
@@ -54,7 +56,8 @@ def sndl_equalEdge(graph_list,
     # SMF_W solve the SNDL
     SMF_Train = SMF_BCD.SDL_BCD([X, y], X_test=[X, y], xi= xi, n_components=n_components)
     results_dict = SMF_Train.fit(iter=iter, subsample_size=None,# search_radius_const=200*np.linalg.norm(X),
-                                if_compute_recons_error=True, if_validate=True)
+                                if_compute_recons_error=if_compute_recons_error, if_validate=
+                                if_validate)
     
     W = results_dict.get('loading')[0]
     beta= results_dict.get('loading')[1]
