@@ -95,5 +95,6 @@ def sndl_predict(G3, W, beta, n3):
         p_sum += p
     
     prob = p_sum / n3
+    prob = np.insert(prob, 0, 1-np.sum(prob))
 
     return prob
