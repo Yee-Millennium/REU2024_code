@@ -393,7 +393,7 @@ class SDL_BCD():
     
     def fit(self,
             option = "filter", #or "feature",
-            threshhold = 0.5,
+            threshold = 0.5,
             iter=100,
             beta=1,
             dict_update_freq=1,
@@ -626,7 +626,7 @@ class SDL_BCD():
                     if if_validate and (step>1):
                         accuracy_result = self.validation_multi(result_dict = self.result_dict,
                                         prediction_method_list=prediction_method_list,
-                                        verbose=True, threshhold=threshhold)
+                                        verbose=True, threshold=threshold)
                         confusion_matrix = accuracy_result.get('confusion_mx')
                         ACC = accuracy_result.get('Accuracy')
                         if ACC>0.99:
@@ -665,7 +665,7 @@ class SDL_BCD():
             print('!!! FINAL [threshold, AUC] = ', [np.round(threshold,3), np.round(AUC,3)])
         else:
             accuracy_result = self.validation_multi(result_dict=self.result_dict, 
-                                                    prediction_method_list=prediction_method_list, threshhold=threshhold)
+                                                    prediction_method_list=prediction_method_list, threshold=threshold)
             confusion_matrix = accuracy_result.get('confusion_mx')
             ACC = accuracy_result.get('Accuracy')
             print('!!! FINAL [confusion_mx, Accuracy] = ', [confusion_matrix, np.round(ACC, 3)])
@@ -938,7 +938,7 @@ class SDL_BCD():
 
 
     def validation_multi(self,
-                         threshhold = 0.5, 
+                         threshold = 0.5, 
                     result_dict=None,
                     X_test = None,
                     X_test_aux = None,
@@ -981,7 +981,7 @@ class SDL_BCD():
                     P_pred[:, i] = P_pred[:, i] / normalizer[i]
                 
                 accuracy_result = multiclass_accuracy_metrics(Y_test=self.X_test[1], 
-                                                            P_pred=P_pred, threshhold=threshhold)
+                                                            P_pred=P_pred, threshold=threshold)
                 if verbose == True:
                     confusion_matrix = accuracy_result.get('confusion_mx')
                     ACC = accuracy_result.get('Accuracy')
@@ -1279,7 +1279,7 @@ def fit_MLR_GD(Y, H, W0=None, sub_iter=100, stopping_diff=0.01):
             # print('iter %i, grad_norm %f' %(i, np.linalg.norm(grad)))
         return W1
 
-def multiclass_accuracy_metrics(Y_test, P_pred, threshhold = 0.5, class_labels=None, use_opt_threshold=False):
+def multiclass_accuracy_metrics(Y_test, P_pred, threshold = 0.5, class_labels=None, use_opt_threshold=False):
     '''
     y_test = multiclass one-hot encoding  labels 
     Q = predicted probability for y_test
@@ -1297,7 +1297,7 @@ def multiclass_accuracy_metrics(Y_test, P_pred, threshhold = 0.5, class_labels=N
                 y_test.append(1)
             else:
                 y_test.append(0)
-            if P_pred_T[i,j] >= threshhold:
+            if P_pred_T[i,j] >= threshold:
                 y_pred.append(1)
             else:
                 y_pred.append(0)
