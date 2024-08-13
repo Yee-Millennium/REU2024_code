@@ -24,11 +24,12 @@ def sampling_sndl(list_graphs: list,
     for idx, G in enumerate(list_graphs):
         sample_size = sample_size_list[idx]
         if sampling_alg != 'RW':
-            X, embs = G.get_patches(k=k, sample_size=sample_size,
-                                    sampling_alg = sampling_alg,
-                                    skip_folded_hom=skip_folded_hom)
-            X_list.append(X)
-            embs_list.append(embs)
+            for i in np.arange(10):
+                X, embs = G.get_patches(k=k, sample_size=sample_size//10,
+                                        sampling_alg = sampling_alg,
+                                        skip_folded_hom=skip_folded_hom)
+                X_list.append(X)
+                embs_list.append(embs)
         else:
             X = []
             embs = []

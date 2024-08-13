@@ -125,10 +125,10 @@ def compute_latent_motifs_and_dictionary(ntwk_list, base_sample_size, k, xi, n_c
             G = nn.NNetwork()
             G.load_add_edges(path, increment_weights=False, use_genfromtxt=True)
             graph_list.append(G)
-        
+            print("Calling `sndl_equalEdge` and computing dictionary")
         with suppress_output():
             W, beta, H = sndl_equalEdge(graph_list, base_sample_size=base_sample_size, k=k, xi=xi, n_components=n_components, iter=iterations)
-            print("Calling `sndl_equalEdge` and computing dictionary")
+            
         save_dictionary(W, beta, H, filepath)
     
     return W, beta, H
