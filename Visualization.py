@@ -2,6 +2,7 @@ import numpy as np
 import seaborn as sns
 import os
 import sys
+sys.path.append(".")
 import matplotlib.pyplot as plt
 import pickle  # To save and load dictionaries
 from itertools import combinations
@@ -87,7 +88,7 @@ def affinity_analysis_binary_all(ntwk_list, sample_size_list, k, n_components, i
 
 
 
-
+##### Multiclass
 
 def get_save_path(ntwk_list, base_sample_size, k, xi, n_components, iterations, baseline_i):
     """Generate a unique file path for saving the dictionary based on parameters."""
@@ -127,7 +128,7 @@ def compute_latent_motifs_and_dictionary(ntwk_list, base_sample_size, k, xi, n_c
             graph_list.append(G)
             print("Calling `sndl_equalEdge` and computing dictionary")
         with suppress_output():
-            W, beta, H = sndl_equalEdge(graph_list, base_sample_size=base_sample_size, k=k, xi=xi, n_components=n_components, iter=iterations)
+            W, beta, H = sndl_equalEdge(graph_list, base_sample_size=base_sample_size, k=k, xi=xi, n_components=n_components, iter=iterations, skip_folded_hom=False)
             
         save_dictionary(W, beta, H, filepath)
     
