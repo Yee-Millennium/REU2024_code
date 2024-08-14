@@ -20,7 +20,7 @@ def sampling_sndl(list_graphs: list,
     if sample_size_list is None:
         sample_size_list = [sample_size] * len_networks  # Use default sample_size for each graph
 
-    # Construct the matrix
+    # Construct the matrix X
     for idx, G in enumerate(list_graphs):
         sample_size = sample_size_list[idx]
         if sampling_alg != 'RW':
