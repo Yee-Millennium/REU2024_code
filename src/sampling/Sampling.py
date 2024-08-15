@@ -1,3 +1,5 @@
+# Author: Yi Wei
+
 import numpy as np 
 from NNetwork import NNetwork as nn
 

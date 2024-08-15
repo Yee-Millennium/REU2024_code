@@ -1,3 +1,5 @@
+# Author: Yi Wei
+
 # from utils.onmf.onmf import Online_NMF
 from ndl import Online_NMF
 from NNetwork import NNetwork as nn
