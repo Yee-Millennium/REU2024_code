@@ -30,7 +30,7 @@ DEBUG = False
 
 class SDL_BCD():
     # Supervised Dictionary Learning by Block Coordinate Descent
-    # Author: Joowon Lee and Hanbaek Lyu
+    # Author: Joowon Lee and Hanbaek Lyu, Yi Wei(for multiclass model)
     # Supservise NMF feature extraction via a classification task
     # NMF + Logistic Regression
     # Model: Data (X) \approx Dictionary (W) @ Code (H)
