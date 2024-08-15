@@ -61,8 +61,10 @@ def sampling_sndl(list_graphs: list,
             y[idx-1] = 1 
         y_matrix = np.tile(y, (real_sample_size, 1)).T
         y_list.append(y_matrix)
-
+    
     X_list = np.concatenate(X_list, axis=1)
     y_list = np.concatenate(y_list,axis=1)
+    if len_networks == 2:
+        y_list = y_list.flatten()
 
     return X_list, y_list
