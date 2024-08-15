@@ -1,7 +1,8 @@
 import numpy as np
 import sys
-sys.path.append(".")
 from NNetwork import NNetwork as nn
+
+sys.path.append('..')  
 from src.sampling.Sampling import sampling_sndl
 from src.supervised_NDL import SMF_BCD
 
@@ -56,7 +57,7 @@ def sndl_equalEdge(graph_list,
     else:
         size_list = sample_size_list
 
-    X, y = sampling_sndl(graph_list, k=k, sample_size_list=size_list)
+    X, y = sampling_sndl(graph_list, k=k, sample_size_list=size_list, skip_folded_hom=skip_folded_hom)
     # SMF_W solve the SNDL
     SMF_Train = SMF_BCD.SDL_BCD([X, y], X_test=[X, y], xi= xi, n_components=n_components)
     results_dict = SMF_Train.fit(iter=iter, subsample_size=None,# search_radius_const=200*np.linalg.norm(X),
