@@ -36,16 +36,16 @@ def generate_config_model(degree_sequence):
     return edgelist
 
 def similarity(network1, network2, k=30, xi=5, n_components=8):
-    Output = live_sample_graph(network1, network2, k=k)
-    X = Output[0]
-    Y = Output[1][:, np.newaxis]
+    network_list = [network1, network2]
+    X, Y = sampling(network_list, k=k)
     Xtrain, Ytrain = X, Y
-    SMF_Train = SMF.SDL_BCD([X, Y.T], X_test=[Xtrain, Ytrain.T], xi=xi, n_components=n_components)
+    SMF_Train = SMF.SDL_BCD([X, Y], X_test=[Xtrain, Ytrain], xi=xi, n_components=n_components)
     results_dict_new = SMF_Train.fit(iter=250, subsample_size=None, option="filter", if_compute_recons_error=True, if_validate=True)
     W = results_dict_new.get('loading')[0]
     beta = results_dict_new.get('loading')[1]
     threshold = results_dict_new.get('Opt_threshold')
-    prediction1 = live_sample_graph(network1, network1, k=k)[0]
+    network_list2 = [network1, network2]
+    prediction1 = sampling(network_list2, k=k)[0]
     pred = []
     y = []
     correct = 0
