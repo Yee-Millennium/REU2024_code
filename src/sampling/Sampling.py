@@ -20,15 +20,21 @@ def sampling_sndl(list_graphs: list,
     if sample_size_list is None:
         sample_size_list = [sample_size] * len_networks  # Use default sample_size for each graph
 
-    # Construct the matrix X
+    # Construct the matrix
+    labels = []
     for idx, G in enumerate(list_graphs):
         sample_size = sample_size_list[idx]
         if sampling_alg != 'RW':
-            X, embs = G.get_patches(k=k, sample_size=sample_size,
-                                    sampling_alg = sampling_alg,
-                                    skip_folded_hom=skip_folded_hom)
-            X_list.append(X)
-            embs_list.append(embs)
+            for i in np.arange(10):
+                X, embs = G.get_patches(k=k, sample_size=sample_size//10,
+                                        sampling_alg = sampling_alg,
+                                        skip_folded_hom=skip_folded_hom)
+                X_list.append(X)
+                embs_list.append(embs)
+                labels = labels+[idx]*len(embs)
+               # Construct the labels
+            labels = np.asarray(labels)
+            
         else:
             X = []
             embs = []
@@ -48,12 +54,4 @@ def sampling_sndl(list_graphs: list,
     X_list = np.concatenate(X_list, axis=1)
 
 
-    # Construct the labels
-    if labels == None:
-        labels = np.arange(0, len_networks, 1)
-
-    label_matrix = np.zeros((len_networks-1, sum(sample_size_list)))
-    for i in range(len_networks-1):
-        label_matrix[i, sum(sample_size_list[:i+1]) : sum(sample_size_list[:(i+2)])] = 1
-
-    return X_list, label_matrix
+    return X_list, labels

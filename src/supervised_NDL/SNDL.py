@@ -1,7 +1,9 @@
 import numpy as np
+import sys
+sys.path.append(".")
 from NNetwork import NNetwork as nn
 from src.sampling.Sampling import sampling_sndl
-from . import SMF_BCD
+from src.supervised_NDL import SMF_BCD
 
 
 def sndl_equalEdge(graph_list, 
@@ -14,7 +16,8 @@ def sndl_equalEdge(graph_list,
                    base_sample_size = 500,
                    subsample_number = 300,
                    if_compute_recons_error=False, 
-                   if_validate=False):
+                   if_validate=False,
+                   skip_folded_hom=True):
     '''
     args:
         graph_list: graphs which we do supervised network dictionary learning task on
@@ -40,7 +43,7 @@ def sndl_equalEdge(graph_list,
     ### Sample subgraphs to ensure similar edge number in each subgraph
     if sample_size_list == None:
         temp_X, temp_y = sampling_sndl(graph_list, sample_size_list=[subsample_number]*len(graph_list)
-                                       , k=k)
+                                       , k=k, skip_folded_hom=skip_folded_hom)
         edge_num = []
         ratio = []
         size_list = [base_sample_size]
