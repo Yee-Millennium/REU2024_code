@@ -64,7 +64,5 @@ def sampling_sndl(list_graphs: list,
     
     X_list = np.concatenate(X_list, axis=1)
     y_list = np.concatenate(y_list,axis=1)
-    if len_networks == 2:
-        y_list = y_list.flatten()
 
     return X_list, y_list
