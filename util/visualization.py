@@ -1,16 +1,15 @@
 import numpy as np
 import seaborn as sns
-import os
 import sys
+import os
 import matplotlib.pyplot as plt
 import pickle  # To save and load dictionaries
 from itertools import combinations
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from NNetwork import NNetwork as nn
 from contextlib import contextmanager
-from util.plotting import *
 
-sys.path.append('../src')  
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.sampling.Sampling import sampling_sndl
 from src.supervised_NDL.SNDL import sndl_equalEdge, sndl_predict
 
@@ -127,9 +126,9 @@ def compute_latent_motifs_and_dictionary(ntwk_list, base_sample_size, k, xi, n_c
             G = nn.NNetwork()
             G.load_add_edges(path, increment_weights=False, use_genfromtxt=True)
             graph_list.append(G)
-            print("Calling `sndl_equalEdge` and computing dictionary")
+            print(f"Calling `sndl_equalEdge` and computing dictionary for {ntwk}")
         with suppress_output():
-            W, beta, H = sndl_equalEdge(graph_list, base_sample_size=base_sample_size, k=k, xi=xi, n_components=n_components, iter=iterations, skip_folded_hom=False)
+            W, beta, H = sndl_equalEdge(graph_list, base_sample_size=base_sample_size, k=k, xi=xi, n_components=n_components, iter=iterations, skip_folded_hom=True)
             
         save_dictionary(W, beta, H, filepath)
     
