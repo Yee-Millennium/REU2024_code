@@ -1,7 +1,6 @@
 import numpy as np
 import sys
 from NNetwork import NNetwork as nn
-
 sys.path.append('..')  
 from src.sampling.Sampling import sampling_sndl
 from src.supervised_NDL import SMF_BCD

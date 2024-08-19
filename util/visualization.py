@@ -90,9 +90,11 @@ def affinity_analysis_binary_all(ntwk_list, sample_size_list, k, n_components, i
 
 ##### Multiclass
 
-def get_save_path(ntwk_list, base_sample_size, k, xi, n_components, iterations, baseline_i):
+def get_save_path(ntwk_list, base_sample_size, k, xi, n_components, iterations, baseline_i, average=False):
     """Generate a unique file path for saving the dictionary based on parameters."""
     params_str = f"bs{base_sample_size}_k{k}_xi{xi}_nc{n_components}_iter{iterations}_bi{baseline_i}"
+    if average:
+        params_str += "_avg"
     ntwk_str = "_".join(ntwk_list[baseline_i:baseline_i+3])
     filename = f"dictionaries/{ntwk_str}_{params_str}.pkl"
     print("Getting save path...")
@@ -111,11 +113,12 @@ def load_dictionary(filepath):
         print("Loading dictionary...")
     return W, beta, H
 
-def compute_latent_motifs_and_dictionary(ntwk_list, base_sample_size, k, xi, n_components, iterations, baseline_i=0):
+def compute_latent_motifs_and_dictionary(ntwk_list, base_sample_size, k, xi, n_components, iterations, baseline_i=0, skip_folded_hom=True, average=False, times=1):
     """Compute or load the latent motifs and dictionary for a given baseline."""
-    filepath = get_save_path(ntwk_list, base_sample_size, k, xi, n_components, iterations, baseline_i)
+    filepath = get_save_path(ntwk_list, base_sample_size, k, xi, n_components, iterations, baseline_i, average=average)
     
-    if os.path.exists(filepath):
+    # Only load precomputed dictionary if not averaging
+    if os.path.exists(filepath) and not average:
         print(f"Loading precomputed dictionary from {filepath}")
         W, beta, H = load_dictionary(filepath)
     else:
@@ -127,10 +130,14 @@ def compute_latent_motifs_and_dictionary(ntwk_list, base_sample_size, k, xi, n_c
             G.load_add_edges(path, increment_weights=False, use_genfromtxt=True)
             graph_list.append(G)
             print(f"Calling `sndl_equalEdge` and computing dictionary for {ntwk}")
-        with suppress_output():
-            W, beta, H = sndl_equalEdge(graph_list, base_sample_size=base_sample_size, k=k, xi=xi, n_components=n_components, iter=iterations, skip_folded_hom=True)
+
+        for trial in range(times):
+            with suppress_output():
+                W, beta, H = sndl_equalEdge(graph_list, base_sample_size=base_sample_size, k=k, xi=xi, n_components=n_components, iter=iterations, skip_folded_hom=skip_folded_hom)
             
-        save_dictionary(W, beta, H, filepath)
+            # Save only the last computed dictionary
+            if trial == times - 1:  # Save the last trial's dictionary
+                save_dictionary(W, beta, H, filepath)
     
     return W, beta, H
 
@@ -141,29 +148,38 @@ def compute_prediction_scores(G, W, beta, sample_size):
         print("Computing prediction scores...")
     return prob
 
-def compute_affinity_scores_for_all_networks(ntwk_list, W, beta, baseline_i):
-    """Compute affinity scores for the networks."""
-    affinity_scores = {}
-    for ntwk in ntwk_list:
-        path = "data/" + str(ntwk) + '.txt'
-        G = nn.NNetwork()
-        G.load_add_edges(path, increment_weights=False, use_genfromtxt=True)
-        prob = compute_prediction_scores(G, W, beta, 500)
-        affinity_scores[ntwk] = prob
-    return affinity_scores
+def compute_affinity_scores_for_all_networks(ntwk_list, W, beta, average=False, times=1):
+    """Compute affinity scores for the networks, with optional averaging over multiple trials."""
+    affinity_scores = {ntwk: [] for ntwk in ntwk_list}
 
-def triangle_area(p1, p2, p3):
-    """Calculate the area of a triangle given its vertices."""
-    p1, p2, p3 = np.array(p1, dtype=float), np.array(p2, dtype=float), np.array(p3, dtype=float)
-    return 0.5 * np.linalg.norm(np.cross(p2 - p1, p3 - p1))
+    for trial in range(times):
+        for ntwk in ntwk_list:
+            path = "data/" + str(ntwk) + '.txt'
+            G = nn.NNetwork()
+            G.load_add_edges(path, increment_weights=False, use_genfromtxt=True)
+            prob = compute_prediction_scores(G, W, beta, 500)
+            affinity_scores[ntwk].append(prob)
 
-def plot_3d_affinity_scores(ntwk_list, affinity_scores, baseline_i, view_angle=(30, 60)):
-    """Plot 3D affinity scores for the networks on a single graph."""
+    if average:
+        avg_affinity_scores = {}
+        std_affinity_scores = {}
+        for ntwk in ntwk_list:
+            scores = np.array(affinity_scores[ntwk])
+            avg_affinity_scores[ntwk] = np.mean(scores, axis=0)
+            std_affinity_scores[ntwk] = np.std(scores, axis=0)
+        return avg_affinity_scores, std_affinity_scores
+    else:
+        # Return the first trial's result if not averaging
+        return affinity_scores
+
+def plot_3d_affinity_scores(ntwk_list, affinity_scores, baseline_i, view_angle=(30, 60), average=False, times=1):
+    """Plot 3D affinity scores for the networks on a single graph, with option to include standard deviation."""
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
     print("Plotting...")
 
-    colors = plt.cm.get_cmap('tab10', len(ntwk_list))
+    colormap = plt.colormaps.get_cmap('tab10')
+    colors = [colormap(i / len(ntwk_list)) for i in range(len(ntwk_list))]
     markers = ['v', 's', 'p', '^', 'D', '*', 'P', 'X', 'h']
 
     # Plot Standards with same color as first three networks
@@ -171,24 +187,33 @@ def plot_3d_affinity_scores(ntwk_list, affinity_scores, baseline_i, view_angle=(
     for idx in range(3):
         point = [idx == 0, idx == 1, idx == 2]
         standard_points.append(point)
-        ax.scatter(point[0], point[1], point[2], color=colors(baseline_i + idx), s=50)
+        ax.scatter(point[0], point[1], point[2], color=colors[baseline_i + idx], s=50)
 
     # Plot prediction scores for all networks    
     all_points = []
     labels = []
     coordinates = []
-    for idx, (ntwk, prob) in enumerate(affinity_scores.items()):
+    std_devs = []
+    
+    for idx, ntwk in enumerate(ntwk_list):
+        if average:
+            prob = affinity_scores[0][ntwk]
+        else:
+            prob = affinity_scores[ntwk][0]
+            
+        std_dev = affinity_scores[1][ntwk] if average else [0, 0, 0]
 
         point = np.array([prob[0], prob[1], prob[2]])
         all_points.append(point)
         labels.append(ntwk)
         coordinates.append(f'({prob[0]:.2f}, {prob[1]:.2f}, {prob[2]:.2f})')
+        std_devs.append(f'({std_dev[0]:.2f}, {std_dev[1]:.2f}, {std_dev[2]:.2f})')
 
         if idx in [baseline_i, baseline_i+1, baseline_i+2]:
-            ax.scatter(point[0], point[1], point[2], color=colors(idx), s=50, label=f'{ntwk}', marker='o')
+            ax.scatter(point[0], point[1], point[2], color=colors[idx], s=50, label=f'{ntwk}', marker='o')
         else:
             marker_idx = (idx + 3) % len(markers)  # Use a different marker shape for non-baseline points
-            ax.scatter(point[0], point[1], point[2], color=colors(idx), s=50, marker=markers[marker_idx], label=f'{ntwk}')
+            ax.scatter(point[0], point[1], point[2], color=colors[idx], s=50, marker=markers[marker_idx], label=f'{ntwk}')
 
     tri_vertices = np.array(standard_points)
     tri = Poly3DCollection([tri_vertices], alpha=0.3, color='grey')
@@ -197,6 +222,10 @@ def plot_3d_affinity_scores(ntwk_list, affinity_scores, baseline_i, view_angle=(
     small_tri_vertices = np.array(all_points[baseline_i:baseline_i+3])
     small_tri = Poly3DCollection([small_tri_vertices], alpha=0.3, edgecolor='r', color='yellow')
     ax.add_collection3d(small_tri)
+
+    def triangle_area(p1, p2, p3):
+        p1, p2, p3 = np.array(p1, dtype=float), np.array(p2, dtype=float), np.array(p3, dtype=float)
+        return 0.5 * np.linalg.norm(np.cross(p2 - p1, p3 - p1))
 
     big_triangle_area = triangle_area(*tri_vertices)
     small_triangle_area = triangle_area(*small_tri_vertices[:3])
@@ -207,30 +236,53 @@ def plot_3d_affinity_scores(ntwk_list, affinity_scores, baseline_i, view_angle=(
     ax.set_xlabel(ntwk_list[baseline_i])
     ax.set_ylabel(ntwk_list[baseline_i+1])
     ax.set_zlabel(ntwk_list[baseline_i+2])
-    ax.set_title('3D Visualization of Predicted Network Similarities')
+    if not average:
+        ax.set_title('3D Visualization of Predicted Network Similarities')
+    else:
+        ax.set_title(f'3D Visualization of Average Predicted Network Similarities ({times} times)')
 
     # Set the legend at the bottom
     ax.legend(loc='upper right', bbox_to_anchor=(1.2, 1), ncol=1)
 
     ax.view_init(elev=view_angle[0], azim=view_angle[1])
 
-    # Add a table to display the coordinates, positioned below the plot
+    # Add a table to display the coordinates, and optionally standard deviations, positioned below the plot
     print("Adding a table...")
-    table_data = list(zip(labels, coordinates))
-    col_labels = ["Network", "Coordinates"]
+    if average:
+        table_data = list(zip(labels, coordinates, std_devs))
+        col_labels = ["Network", "Coordinates", "Std Dev"]
+    else:
+        table_data = list(zip(labels, coordinates))
+        col_labels = ["Network", "Coordinates"]
+
     ax_table = plt.axes([0.1, 0.01, 0.8, 0.15])  # Positioning the table below the plot
     ax_table.axis("off")
     table = ax_table.table(cellText=table_data, colLabels=col_labels, loc='center', cellLoc='center')
     table.scale(1, 1.5)
     table.auto_set_font_size(False)
-    table.set_fontsize(10)
 
     plt.subplots_adjust(left=0.1, right=0.9, top=0.85, bottom=0.3)  # Adjust plot to fit table nicely
 
-
     return fig  # Return the figure to combine them later
 
-def plot_3d_prediction(ntwk_list, base_sample_size, k, n_components, iterations, baseline_i):
+def save_plot(fig, ntwk_list, base_sample_size, k, n_components, iterations, baseline_i, average):
+    """Save the plot to a file with a concise name including network names and parameters."""
+    output_dir = "output/triangle_plot"
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Construct the filename
+    ntwk_str = "_".join(ntwk_list[:3]) + "_etc" if len(ntwk_list) > 3 else "_".join(ntwk_list)
+    avg_str = "avg" if average else "single"
+    filename = f"{ntwk_str}_bs{base_sample_size}_k{k}_nc{n_components}_iter{iterations}_bi{baseline_i}_{avg_str}.png"
+    filepath = os.path.join(output_dir, filename)
+    
+    # Save the figure
+    fig.savefig(filepath)
+    print(f"Plot saved to {filepath}")
+
+# Multiclass Main Function 
+
+def plot_3d_prediction(ntwk_list, base_sample_size, k, xi, n_components, iterations, baseline_i, skip_folded_hom=True, average=False, times=1):
     """Compute and plot 3D prediction of network similarities."""
     n = len(ntwk_list)
     if n <= 3:
@@ -240,12 +292,16 @@ def plot_3d_prediction(ntwk_list, base_sample_size, k, n_components, iterations,
     # Create a directory to store dictionaries if it doesn't exist
     os.makedirs('dictionaries', exist_ok=True)
     
-    # Compute dictionary for the baseline set of 3 networks
-    W, beta, H = compute_latent_motifs_and_dictionary(ntwk_list, base_sample_size=base_sample_size, k=k, xi=7, n_components=n_components, iterations=iterations, baseline_i=baseline_i)
+    # Compute dictionary for the baseline set of 3 networks, with optional averaging
+    W, beta, H = compute_latent_motifs_and_dictionary(ntwk_list, base_sample_size=base_sample_size, k=k, xi=xi, n_components=n_components, iterations=iterations, baseline_i=baseline_i, skip_folded_hom=skip_folded_hom, average=average, times=times)
 
-    # Compute affinity scores for all networks
-    affinity_scores = compute_affinity_scores_for_all_networks(ntwk_list, W, beta, baseline_i)
+    # Compute affinity scores for all networks, with optional averaging
+    affinity_scores = compute_affinity_scores_for_all_networks(ntwk_list, W, beta, average=average, times=times)
 
     # Generate and show a single plot with all networks, including the baseline and additional ones
-    fig = plot_3d_affinity_scores(ntwk_list, affinity_scores, baseline_i)
+    fig = plot_3d_affinity_scores(ntwk_list, affinity_scores, baseline_i, average=average, times=times)
+    
+    # Save the plot
+    save_plot(fig, ntwk_list, base_sample_size, k, n_components, iterations, baseline_i, average)
+    
     plt.show()
