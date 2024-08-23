@@ -68,3 +68,81 @@ def sampling_sndl(list_graphs: list,
     y_list = np.concatenate(y_list,axis=1)
 
     return X_list, y_list
+
+
+
+def sampling_graph_classification(dataset, 
+                                      sample_size=100, 
+                                      k = 10, 
+                                      has_node_feature = False,
+                                      has_edge_feature = False,
+                                      sampling_alg = 'pivot', #RW 
+                                      skip_folded_hom=True):
+    '''
+    return: X.shape = [sample_size * num_Data_in_dataset, k*k]
+            y.shape = [sample_size * num_Data_in_dataset, num_labels - 1]
+    '''
+    X_list = []
+    y_list = []
+    for idx, graph in enumerate(dataset):
+        G = nn.NNetwork()
+        edges =  graph.edge_index.T.tolist()
+        G.add_edges(edges)
+
+        # print(f"!!! edge_index: {edge_index}")
+        # np.savetxt("edge_index.txt", edge_index, fmt='%d')
+
+        X, emb = G.get_patches(k=k, sample_size=sample_size, 
+                               sampling_alg=sampling_alg, 
+                               skip_folded_hom=skip_folded_hom)
+        emb = np.asarray(emb).astype(int)
+        # np.savetxt("emb.txt", emb, fmt='%d')
+        # np.savetxt("X.txt", X, fmt='%d')
+
+        real_sample_size = X.shape[1]
+        y = np.zeros(36)
+        if graph.y.item() != 0:
+            y[graph.y.item()-1] = 1
+        y_matrix = np.tile(y, (real_sample_size, 1))
+        y_list.append(y_matrix)
+        
+        
+        if has_edge_feature:
+            edge_features = np.zeros(shape=(X.shape[1], k*k*graph.edge_attr.shape[1]))
+            for l in range(X.shape[1]):
+                subgraph = X[:, l].reshape(k,k)
+                edge_feature = np.zeros(shape=(k,k,graph.edge_attr.shape[1]))
+                for i in range(k-1):
+                    for j in range(i+1, k):
+                        if subgraph[i,j] == 1:
+                            ### find the corresponding nodes index by embedding
+                            edge = np.array([emb[l][i], emb[l][j]])
+
+                            row_index = np.nonzero(np.all(edges == edge, axis=1))[0][0]
+
+                            feature = graph.edge_attr[row_index]
+                            # print(feature)
+                            # print(f"!!! {l}")
+                            # print(f"!!! The shape of edge_feature: {edge_feature.shape}")
+                            edge_feature[i,j] = feature
+                            edge_feature[j,i] = feature
+                edge_feature = edge_feature.reshape((1,-1))
+                edge_features[l] = edge_feature
+            X = np.vstack((X, edge_features.T))
+
+        if has_node_feature:
+            node_features = np.zeros(shape=(X.shape[1], k*graph.x.shape[1]))
+            for l in range(X.shape[1]):
+                node_feature = np.zeros((k,graph.x.shape[1]))
+                for i in range(k):
+                    node_feature[i] = graph.x[emb[l][i]]
+                node_feature = node_feature.reshape((1,-1))
+                node_features[l] = node_feature
+            X = np.vstack((X, node_features.T))
+
+        X_list.append(X)
+        
+    X_list = np.concatenate(X_list, axis=1)
+    y_list = np.concatenate(y_list,axis=1)
+    
+    return X_list, y_list
