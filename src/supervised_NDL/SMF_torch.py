@@ -29,7 +29,6 @@ class smf(nn.Module):
 
     def __init__(self,
                  X_train, y_train,
-                 output_size,
                  hidden_size=4,
                  device='cuda'):
         super(smf, self).__init__()
