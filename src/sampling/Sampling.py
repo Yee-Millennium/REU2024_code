@@ -1,8 +1,6 @@
 # Author: Yi Wei
 import numpy as np 
-import sys
-sys.path.append('../../NNetwork_modified/src/NNetwork')
-from NNetwork import NNetwork as nn
+from NNetwork_modified.NNetwork import NNetwork as nw
 
 
 def sampling_sndl(list_graphs: list, 
@@ -66,7 +64,10 @@ def sampling_sndl(list_graphs: list,
         y_list.append(y_matrix)
     
     X_list = np.concatenate(X_list, axis=1)
-    y_list = np.concatenate(y_list,axis=1)
+    if len(list_graphs) > 2:
+        y_list = np.concatenate(y_list,axis=1)
+    else:
+        y_list = np.asarray(y_list).flatten()
 
     return X_list, y_list
 
@@ -86,7 +87,7 @@ def sampling_graph_classification(dataset,
     X_list = []
     y_list = []
     for idx, graph in enumerate(dataset):
-        G = nn()
+        G = nw()
         edges =  graph.edge_index.T.tolist()
         G.add_edges(edges)
 
@@ -153,6 +154,9 @@ def sampling_graph_classification(dataset,
         X_list.append(X)
         
     X_list = np.concatenate(X_list, axis=1)
-    y_list = np.concatenate(y_list,axis=1)
+    if dataset.num_classes == 2:
+        y_list = np.asarray(y_list).flatten()
+    else:
+        y_list = np.concatenate(y_list,axis=1)
     
     return X_list, y_list
