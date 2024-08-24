@@ -1,3 +1,6 @@
+# Author: Yi Wei
+# Description: Sampling and training for supervised network dictionary learning tasks
+
 import numpy as np
 import sys
 import os

@@ -1,3 +1,5 @@
+# Author: Yi Wei
+
 import numpy as np 
 from NNetwork import NNetwork as nn
 
@@ -61,7 +63,7 @@ def sampling_sndl(list_graphs: list,
             y[idx-1] = 1 
         y_matrix = np.tile(y, (real_sample_size, 1)).T
         y_list.append(y_matrix)
-
+    
     X_list = np.concatenate(X_list, axis=1)
     y_list = np.concatenate(y_list,axis=1)
 
