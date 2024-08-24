@@ -1,7 +1,8 @@
 import numpy as np
 import sys
+import os
 from NNetwork import NNetwork as nn
-sys.path.append('..')  
+sys.path.insert(0, r"C:\Users\KuangQi\Desktop\REU_main\REU2024_code")
 from src.sampling.Sampling import sampling_sndl
 from src.supervised_NDL import SMF_BCD
 

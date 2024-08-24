@@ -24,17 +24,18 @@ def suppress_output():
         finally:
             sys.stdout = original_stdout
 # Binary 
-def compute_latent_motifs_binary_all(graph_list, sample_size_list, k, n_components, iterations):
+def compute_latent_motifs_binary_all(graph_list, sample_size_list, k, xi, n_components, iterations, skip_folded_hom):
     motifs = {}
     for i, j in combinations(range(len(graph_list)), 2):
         print(f"Computing latent motifs for networks ({i}, {j})")
         X, y = sampling_sndl([graph_list[i], graph_list[j]], k=k, sample_size_list=sample_size_list)
         with suppress_output():
-            W, beta, H = sndl_equalEdge([graph_list[i], graph_list[j]], sample_size_list, k=k, xi=2, n_components=n_components, iter=iterations)
+            W, beta, H = sndl_equalEdge([graph_list[i], graph_list[j]], sample_size_list, k=k, xi=xi, 
+                                        n_components=n_components, iter=iterations, skip_folded_hom=skip_folded_hom)
         motifs[(i, j)] = (W, beta)
     return motifs
 
-def compute_affinity_scores(motifs, graph_paths, sample_size_list, k, n_components, iterations):
+def compute_affinity_scores(motifs, graph_paths):
     affinity_scores = {}
     num_graphs = len(graph_paths)
     
@@ -46,7 +47,6 @@ def compute_affinity_scores(motifs, graph_paths, sample_size_list, k, n_componen
             affinity_score = sndl_predict(G_test, W, beta, 1000)
             affinity_scores[(i, j, l)] = affinity_score
             del G_test  # Clear memory after usage
-            print(affinity_scores)
     return affinity_scores
 
 def plot_affinity_heatmap_binary_all(affinity_scores, ntwk_list):
@@ -73,7 +73,7 @@ def plot_affinity_heatmap_binary_all(affinity_scores, ntwk_list):
     plt.show()
 
 #Main function for Binary
-def affinity_analysis_binary_all(ntwk_list, sample_size_list, k, n_components, iterations):
+def affinity_analysis_binary_all(ntwk_list, sample_size_list, k, xi, n_components, iterations, skip_folded_hom):
     graph_paths = [f"data/{ntwk}.txt" for ntwk in ntwk_list]
     graph_list = []
 
@@ -82,8 +82,8 @@ def affinity_analysis_binary_all(ntwk_list, sample_size_list, k, n_components, i
         G.load_add_edges(path, increment_weights=False, use_genfromtxt=True)
         graph_list.append(G)
     
-    motifs = compute_latent_motifs_binary_all(graph_list, sample_size_list, k, n_components, iterations)
-    affinity_scores = compute_affinity_scores(motifs, graph_paths, sample_size_list, k, n_components, iterations)
+    motifs = compute_latent_motifs_binary_all(graph_list, sample_size_list, k, xi, n_components, iterations, skip_folded_hom)
+    affinity_scores = compute_affinity_scores(motifs, graph_paths)
     plot_affinity_heatmap_binary_all(affinity_scores, ntwk_list)
 
 
