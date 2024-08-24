@@ -3,26 +3,27 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 import torch
 from torch.autograd import Variable
-from src.supervised_NDL.SMF_BCD import SDL_BCD
-from src.supervised_NDL.SMF_torch import smf
-import sys
 
-sys.path.append("../src")
-from src.sampling.Sampling import sampling_graph_classification
+
+import sys
+sys.path.append('../src/sampling')
+from Sampling import sampling_graph_classification
+sys.path.append('../src/supervised_NDL')
+from SMF_torch import smf
 
 
 dataset_ppa = PygGraphPropPredDataset(name = 'ogbg-ppa')
 
 ### Before doing experiments, modify k(hidden_size) and sample_size.
-k = 1
+k = 10
 
-X , y = sampling_graph_classification(dataset = dataset_ppa, k = k, sample_size=1, 
+X , y = sampling_graph_classification(dataset = dataset_ppa, k = k, sample_size=20, 
                                           has_edge_feature=True)
 
 Accuracy = []
 test_size = 0.3
 
-X_train, X_test, Y_train, Y_test = train_test_split(X, y, test_size=test_size, random_state=2)
+X_train, X_test, Y_train, Y_test = train_test_split(X.T, y.T, test_size=test_size, random_state=2)
 # print(X_train.shape)
 # print(Y_train.shape)
 
@@ -34,7 +35,7 @@ y_test = Variable(torch.from_numpy(Y_test)).long()
 # print(f"y_test: {y_test.shape}")
 
 smf_model = smf(X_train, y_train, hidden_size=k, device='cuda')
-smf_model.fit(num_epochs=500,
+smf_model.fit(num_epochs=200,
                lr_classification=0.01,
                lr_matrix_factorization=0.01,
                xi=1,

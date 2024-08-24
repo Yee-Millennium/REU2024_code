@@ -1,6 +1,7 @@
 # Author: Yi Wei
-
 import numpy as np 
+import sys
+sys.path.append('../../NNetwork_modified/src/NNetwork')
 from NNetwork import NNetwork as nn
 
 
@@ -85,7 +86,7 @@ def sampling_graph_classification(dataset,
     X_list = []
     y_list = []
     for idx, graph in enumerate(dataset):
-        G = nn.NNetwork()
+        G = nn()
         edges =  graph.edge_index.T.tolist()
         G.add_edges(edges)
 
@@ -94,17 +95,26 @@ def sampling_graph_classification(dataset,
 
         X, emb = G.get_patches(k=k, sample_size=sample_size, 
                                sampling_alg=sampling_alg, 
-                               skip_folded_hom=skip_folded_hom)
+                               skip_folded_hom=skip_folded_hom,
+                               info_print=False)
         emb = np.asarray(emb).astype(int)
         # np.savetxt("emb.txt", emb, fmt='%d')
         # np.savetxt("X.txt", X, fmt='%d')
 
         real_sample_size = X.shape[1]
-        y = np.zeros(36)
-        if graph.y.item() != 0:
-            y[graph.y.item()-1] = 1
-        y_matrix = np.tile(y, (real_sample_size, 1))
-        y_list.append(y_matrix)
+        if dataset.num_classes == 2:
+            if graph.y.item() == 0:
+                y = 0
+            else:
+                y = 1
+            y_matrix = np.tile(y, (real_sample_size, 1)).T
+            y_list.append(y_matrix)
+        else:
+            y = np.zeros(dataset.num_classes)
+            if not graph.y.item() == 0:
+                y[graph.y.item()-1] = 1
+            y_matrix = np.tile(y, (real_sample_size, 1)).T
+            y_list.append(y_matrix)
         
         
         if has_edge_feature:
