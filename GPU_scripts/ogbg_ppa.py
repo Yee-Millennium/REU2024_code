@@ -3,6 +3,7 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 import torch
 from torch.autograd import Variable
+from util.plotting  import *
 
 
 import sys
@@ -35,7 +36,7 @@ y_test = Variable(torch.from_numpy(Y_test)).long()
 # print(f"y_test: {y_test.shape}")
 
 smf_model = smf(X_train, y_train, hidden_size=k, device='cuda')
-smf_model.fit(num_epochs=200,
+results_dict = smf_model.fit(num_epochs=200,
                lr_classification=0.01,
                lr_matrix_factorization=0.01,
                xi=1,
@@ -44,3 +45,13 @@ smf_model.fit(num_epochs=200,
                H_nonnegativity=True,
                test_data=[X_test, y_test],
                record_recons_error=True)
+
+W = results_dict.get('loading')[0]
+beta= results_dict.get('loading')[1]
+H = results_dict.get('code')
+
+display_dict_and_graph(save_path=
+                       f'./ogbg_ppa', W=W[:k**2], regression_coeff=beta.T, 
+                       fig_size=[15,15], plot_graph_only=True)
+
+np.savetxt("./results_dict", results_dict, fmt='%f')
