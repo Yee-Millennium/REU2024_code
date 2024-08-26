@@ -5,7 +5,7 @@ import torch.optim as optim
 import torchvision.datasets as datasets
 from torch.autograd import Variable
 import numpy as np
-from scipy import csr_matrix
+from scipy.sparse import csr_matrix
  
 import time
 from sklearn import metrics
