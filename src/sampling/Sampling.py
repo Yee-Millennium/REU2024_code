@@ -79,7 +79,8 @@ def sampling_graph_classification(dataset,
                                       has_node_feature = False,
                                       has_edge_feature = False,
                                       sampling_alg = 'pivot', #RW 
-                                      skip_folded_hom=True):
+                                      skip_folded_hom=True,
+                                      info_print=True):
     '''
     return: X.shape = [sample_size * num_Data_in_dataset, k*k]
             y.shape = [sample_size * num_Data_in_dataset, num_labels - 1]
@@ -97,7 +98,7 @@ def sampling_graph_classification(dataset,
         X, emb = G.get_patches(k=k, sample_size=sample_size, 
                                sampling_alg=sampling_alg, 
                                skip_folded_hom=skip_folded_hom,
-                               info_print=False)
+                               info_print=info_print)
         emb = np.asarray(emb).astype(int)
         # np.savetxt("emb.txt", emb, fmt='%d')
         # np.savetxt("X.txt", X, fmt='%d')
