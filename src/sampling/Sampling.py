@@ -85,8 +85,8 @@ def sampling_graph_classification(dataset,
                  and (optional) x ([num_node, dimension_node_feature]; Node Feature).
 
     return: 
-        X.shape = [sample_size * num_Data_in_dataset, k*k]
-        y.shape = [sample_size * num_Data_in_dataset, num_labels - 1] or [sample_size * num_Data_in_dataset] when num_label == 2.
+        X.shape = [k*k + k*num_node_feature + k*k*num_edge_feature, sample_size * num_Data_in_dataset]
+        y.shape = [num_labels - 1, sample_size * num_Data_in_dataset] or [sample_size * num_Data_in_dataset] when num_label == 2.
     '''
     X_list = []
     y_list = []
