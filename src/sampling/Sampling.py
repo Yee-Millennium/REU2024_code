@@ -64,10 +64,7 @@ def sampling_sndl(list_graphs: list,
         y_list.append(y_matrix)
     
     X_list = np.concatenate(X_list, axis=1)
-    if len(list_graphs) > 2:
-        y_list = np.concatenate(y_list,axis=1)
-    else:
-        y_list = np.asarray(y_list).flatten()
+    y_list = np.concatenate(y_list,axis=1)
 
     return X_list, y_list
 
@@ -82,8 +79,14 @@ def sampling_graph_classification(dataset,
                                       skip_folded_hom=True,
                                       info_print=True):
     '''
-    return: X.shape = [sample_size * num_Data_in_dataset, k*k]
-            y.shape = [sample_size * num_Data_in_dataset, num_labels - 1]
+    para: 
+        dataset: torch.utils.data.Dataset; A dataset contains data which includes info of edge_index ([2, n]; Edges), 
+                 y (scaler; Graph Label), (optional) edge_attr ([num_edge, dimension_edge_feature]; Edge Feature),
+                 and (optional) x ([num_node, dimension_node_feature]; Node Feature).
+
+    return: 
+        X.shape = [sample_size * num_Data_in_dataset, k*k]
+        y.shape = [sample_size * num_Data_in_dataset, num_labels - 1] or [sample_size * num_Data_in_dataset] when num_label == 2.
     '''
     X_list = []
     y_list = []
@@ -155,9 +158,8 @@ def sampling_graph_classification(dataset,
         X_list.append(X)
         
     X_list = np.concatenate(X_list, axis=1)
+    y_list = np.concatenate(y_list,axis=1)
     if dataset.num_classes == 2:
-        y_list = np.asarray(y_list).flatten()
-    else:
-        y_list = np.concatenate(y_list,axis=1)
+        y_list = y_list.flatten()
     
     return X_list, y_list
