@@ -65,6 +65,9 @@ def sampling_sndl(list_graphs: list,
         y_list.append(y_matrix)
     
     X_list = np.concatenate(X_list, axis=1)
-    y_list = np.concatenate(y_list,axis=1)
+    if len(list_graphs) > 2:
+        y_list = np.concatenate(y_list,axis=1)
+    else:
+        y_list = np.asarray(y_list).flatten()
 
     return X_list, y_list
