@@ -1,6 +1,7 @@
 # Author: Yi Wei
 import numpy as np 
 from NNetwork_modified.NNetwork import NNetwork as nw
+import tqdm
 
 
 def sampling_sndl(list_graphs: list, 
@@ -90,7 +91,7 @@ def sampling_graph_classification(dataset,
     '''
     X_list = []
     y_list = []
-    for idx, graph in enumerate(dataset):
+    for idx, graph in enumerate(tqdm.tqdm(dataset)):
         G = nw()
         edges =  graph.edge_index.T.tolist()
         G.add_edges(edges)
