@@ -1,6 +1,8 @@
 # Author: Yi Wei
 import numpy as np 
-from NNetwork_modified.NNetwork import NNetwork as nw
+import sys
+sys.path.append('/Users/yee/Research/REU_2024/REU2024_code/NNetwork_modified')
+from NNetwork_modified import NNetwork as nw
 import tqdm
 
 
