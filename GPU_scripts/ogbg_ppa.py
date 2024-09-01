@@ -3,16 +3,19 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 import torch
 from torch.autograd import Variable
+import pickle
 
 
 import sys
-sys.path.append('../src/sampling')
+
+sys.path.append('/Users/yee/Research/REU_2024/REU2024_code/src/sampling')
 from Sampling import sampling_graph_classification
-sys.path.append('../src/supervised_NDL')
+
+sys.path.append('/Users/yee/Research/REU_2024/REU2024_code/src/supervised_NDL')
 from SMF_torch import smf
-sys.path.append('../src/util/plotting')
+
+sys.path.append('/Users/yee/Research/REU_2024/REU2024_code/util')
 from plotting import *
-import pickle
 
 
 dataset_ppa = PygGraphPropPredDataset(name = 'ogbg-ppa')
