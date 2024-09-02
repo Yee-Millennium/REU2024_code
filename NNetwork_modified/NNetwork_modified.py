@@ -659,9 +659,10 @@ class NNetwork():
 
         num_hom_sampled = 0
         X = []
+        X_temp = []
         embs = []
         count = 0
-        while (num_hom_sampled < sample_size) and (count < 10000 * sample_size):
+        while (num_hom_sampled < sample_size) and (count < 1000 * sample_size):
             emb = self.update_emb(emb,
                                 iterations=1,
                                 sampling_alg=sampling_alg)
@@ -679,7 +680,10 @@ class NNetwork():
             if skip_folded_hom and info_print:
                 print('num of subgraphs induced on k-paths:', X.shape[1])
         else:
-            print("failed to sample k-paths in 10000 * {n} iterations".format(n=sample_size))
+            X.append(Y)
+            X = np.asarray(X)[..., 0].T
+            embs.append(emb)
+            print("return a folder_hom k-path")
 
         return X, embs
 
