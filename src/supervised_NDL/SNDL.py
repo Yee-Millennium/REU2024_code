@@ -1,13 +1,10 @@
-# Author: Yi Wei
-# Description: Sampling and training for supervised network dictionary learning tasks
-
 import numpy as np
 import sys
 import os
 from NNetwork import NNetwork as nn
-sys.path.insert(0, r"C:\Users\KuangQi\Desktop\REU_main\REU2024_code")
-from src.sampling.Sampling import sampling_sndl
-from src.supervised_NDL import SMF_BCD
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from sampling.Sampling import sampling_sndl
+from supervised_NDL import SMF_BCD
 
 
 def sndl_equalEdge(graph_list, 
@@ -60,6 +57,7 @@ def sndl_equalEdge(graph_list,
     else:
         size_list = sample_size_list
 
+    print(f"skip_folded_hom:{skip_folded_hom}")
     X, y = sampling_sndl(graph_list, k=k, sample_size_list=size_list, skip_folded_hom=skip_folded_hom)
     # SMF_W solve the SNDL
     SMF_Train = SMF_BCD.SDL_BCD([X, y], X_test=[X, y], xi= xi, n_components=n_components)

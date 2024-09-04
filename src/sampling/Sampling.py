@@ -1,7 +1,8 @@
-# Author: Yi Wei
-
-import numpy as np 
-from NNetwork import NNetwork as nn
+import sys
+import os
+import numpy as np
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from NNetwork_modified.NNetwork import NNetwork as nw
 
 
 def sampling_sndl(list_graphs: list, 

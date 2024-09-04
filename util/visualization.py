@@ -28,7 +28,7 @@ def compute_latent_motifs_binary_all(graph_list, sample_size_list, k, xi, n_comp
     motifs = {}
     for i, j in combinations(range(len(graph_list)), 2):
         print(f"Computing latent motifs for networks ({i}, {j})")
-        X, y = sampling_sndl([graph_list[i], graph_list[j]], k=k, sample_size_list=sample_size_list)
+        X, y = sampling_sndl([graph_list[i], graph_list[j]], k=k, sample_size_list=sample_size_list, skip_folded_hom=skip_folded_hom)
         with suppress_output():
             W, beta, H = sndl_equalEdge([graph_list[i], graph_list[j]], sample_size_list, k=k, xi=xi, 
                                         n_components=n_components, iter=iterations, skip_folded_hom=skip_folded_hom)
