@@ -118,10 +118,11 @@ def sampling_graph_classification(dataset,
             y_matrix = np.tile(y, (real_sample_size, 1)).T
             y_list.append(y_matrix)
         else:
-            y = np.zeros(dataset.num_classes)
+            y = np.zeros((dataset.num_classes - 1))
             if not graph.y.item() == 0:
                 y[graph.y.item()-1] = 1
             y_matrix = np.tile(y, (real_sample_size, 1)).T
+            print(f"y_matrix.shape: {y_matrix.shape}")
             y_list.append(y_matrix)
         
         
@@ -164,5 +165,6 @@ def sampling_graph_classification(dataset,
     y_list = np.concatenate(y_list,axis=1)
     if dataset.num_classes == 2:
         y_list = y_list.flatten()
+    
     
     return X_list, y_list
