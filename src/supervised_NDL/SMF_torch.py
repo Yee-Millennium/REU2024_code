@@ -315,6 +315,8 @@ class smf(nn.Module):
                 label_vec = np.sum(label_vec, axis=0)
                 clf = LogisticRegression(random_state=0, max_iter=300).fit(X0_comp.T, label_vec)
                 coef = np.zeros((self.y_train.shape[1], W0.shape[1]))
+                print(f"!!! this is y_train.shape[1]: {self.y_train.shape[1]}")
+                print(f"!!! the clf.coef_'s shape: {clf.coef_.shape}")
                 for row in range(self.y_train.shape[1]):
                     coef[row] = clf.coef_[row+1] - clf.coef_[0]
                 intercepts = np.zeros(self.y_train.shape[1])
