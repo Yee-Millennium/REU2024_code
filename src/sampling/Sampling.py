@@ -122,7 +122,7 @@ def sampling_graph_classification(dataset,
             if not graph.y.item() == 0:
                 y[graph.y.item()-1] = 1
             y_matrix = np.tile(y, (real_sample_size, 1)).T
-            print(f"y_matrix.shape: {y_matrix.shape}")
+            # print(f"y_matrix.shape: {y_matrix.shape}")
             y_list.append(y_matrix)
         
         
