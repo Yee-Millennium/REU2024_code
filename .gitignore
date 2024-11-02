@@ -7,7 +7,6 @@ util/__pycache__/plotting.cpython-311.pyc
 NDL_paper/
 motif_sampling/
 Network_Dictionary_Learning/
-NNetwork/
 SMF/
 nn_prac.ipynb
 sample_prac.ipynb
@@ -31,3 +30,9 @@ Hanbaek_ML_notes/Math156_UCLA_SP21/
 util/__pycache__/plotting.cpython-312.pyc
 /Math444_GNiDS
 /SCR
+prac.ipynb
+/data/cifar-10-batches-py
+/dataset
+/parser
+
+/GPU_scripts/dataset

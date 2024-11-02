@@ -5,6 +5,7 @@ import torch.optim as optim
 import torchvision.datasets as datasets
 from torch.autograd import Variable
 import numpy as np
+from scipy.sparse import csr_matrix
  
 import time
 from sklearn import metrics
@@ -29,14 +30,14 @@ class smf(nn.Module):
 
     def __init__(self,
                  X_train, y_train,
-                 output_size,
                  hidden_size=4,
                  device='cuda'):
         super(smf, self).__init__()
 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        if device =='cpu':
-            self.device = torch.device('cpu')
+        if device =='mps':
+            self.device = torch.device('mps')
+        print(f"!!! torch.device: {self.device}")
 
         if y_train.ndim == 1:
             self.multiclass = False
@@ -74,7 +75,7 @@ class smf(nn.Module):
             def forward(self, x):
                 x1 = self.linear_W(x)
                 x2 = self.linear_beta(x1)
-                print(f"x2's shape: {x2.shape}")
+                # print(f"x2's shape: {x2.shape}")
                 x3 = torch.sigmoid(x2)
                 return x3
 
@@ -266,7 +267,6 @@ class smf(nn.Module):
                 self.result_dict.update({'code': H})
                 self.compute_recons_error_multi()
                         
-
         for epoch in range(num_epochs):
             self.result_dict.update({'curren_epoch': epoch})
             start = time.time()
@@ -374,6 +374,7 @@ class smf(nn.Module):
 
             if (epoch+1) % 10 == 0:
                 print(f'Epoch [{epoch+1}/{num_epochs}],'
+                      f"Elapsed_time: {self.result_dict['elapsed_time']}," 
                       f'Loss_Classification: {loss_Classification.item():.4f}',
                       f'Loss_MF: {loss_MF.item():.4f}')
 
@@ -489,11 +490,36 @@ class smf(nn.Module):
 
         X0_comp = W[0].T @ X[0]
         X0_ext = np.vstack((np.ones(X[1].shape[1]), X0_comp))
-        # print(f"The X0_ext: {X0_ext.shape}")
-        # print(f"The W[1]: {W[1].shape}")
-        # print(f"X[1] : {X[1].shape}")
-        error_label = np.sum(1 + np.sum(np.exp(W[1]@X0_ext), axis=0)) - np.trace(X[1].T @ W[1] @ X0_ext)
+
+        ### modify matrices as sparse matrices
+        # Assuming W[1], X0_ext, and X[1] are dense matrices, convert them to sparse format
+        # Convert dense matrices to sparse format
+        W_sparse = csr_matrix(W[1])
+        X0_ext_sparse = csr_matrix(X0_ext)
+        X_sparse = csr_matrix(X[1])
+
+        # Perform matrix multiplication using sparse matrices
+        sparse_result = W_sparse @ X0_ext_sparse
+
+        # Apply np.exp only to the non-zero elements of the sparse matrix
+        exp_data = np.exp(sparse_result.data)
+
+        # Create a new sparse matrix with the exponentiated values
+        exp_result = csr_matrix((exp_data, sparse_result.indices, sparse_result.indptr), shape=sparse_result.shape)
+
+        # Convert sparse matrix to dense format before summation (if needed)
+        exp_result_dense = exp_result.toarray()
+
+        # Calculate trace manually on sparse matrices (sum of diagonal elements)
+        trace_result = np.sum((X_sparse.T @ W_sparse @ X0_ext_sparse).diagonal())
+
+        # Calculate error_label
+        error_label = np.sum(1 + np.sum(exp_result_dense, axis=0)) - trace_result
+
+        # Continue with the original logic for total_error_new
         total_error_new = error_label + self.result_dict.get('xi') * error_data
+        # error_label = np.sum(1 + np.sum(np.exp(W[1]@X0_ext), axis=0)) - np.trace(X[1].T @ W[1] @ X0_ext)
+        # total_error_new = error_label + self.result_dict.get('xi') * error_data
 
         elapsed_time = self.result_dict.get("elapsed_time")
         time_error = self.result_dict.get("time_error")
@@ -565,23 +591,63 @@ class smf(nn.Module):
             y_hat = np.asarray(y_hat.cpu().numpy())
             y_test = np.asarray(y_test.cpu().numpy()).copy()
 
+
             y_test_result = []
             y_pred_result = []
             
-            for i in np.arange(y_test.shape[0]):
-                for j in np.arange(y_test.shape[1]):
-                    if y_test[i,j] == 1:
-                        y_test_result.append(1)
-                    else:
-                        y_test_result.append(0)
-                    if P_pred[i,j] >= mythre:
-                        y_pred_result.append(1)
-                    else:
-                        y_pred_result.append(0)
+            # for i in np.arange(y_test.shape[0]):
+            #     for j in np.arange(y_test.shape[1]):
+            #         if y_test[i,j] == 1:
+            #             y_test_result.append(1)
+            #         else:
+            #             y_test_result.append(0)
+            #         if P_pred[i,j] >= mythre:
+            #             y_pred_result.append(1)
+            #         else:
+            #             y_pred_result.append(0)
 
+            # mcm = metrics.confusion_matrix(y_test_result, y_pred_result)
+            # accuracy = np.trace(mcm)/np.sum(np.sum(mcm))
+
+            # tn = mcm[0, 0]
+            # tp = mcm[1, 1]
+            # fn = mcm[1, 0]
+            # fp = mcm[0, 1]
+
+            # accuracy = (tp + tn) / (tp + tn + fp + fn)
+            # misclassification = 1 - accuracy
+            # sensitivity = tp / (tp + fn)
+            # specificity = tn / (tn + fp)
+            # precision = tp / (tp + fp)
+            # recall = tp / (tp + fn)
+            # fall_out = fp / (fp + tn)
+            # miss_rate = fn / (fn + tp)
+            # F_score = 2 * precision * recall / ( precision + recall )
+
+            count = 0
+            for i in np.arange(y_test.shape[0]):
+                # predicted class of sample "i":
+                y1 = np.arange(y_hat.shape[1])[np.max(y_hat[i,:]) ==  y_hat[i,:]][0]
+                
+                # True class of sample "i":
+                if np.max(y_test[i,:]) == 1:
+                    y2 = np.sum( np.arange(1,y_test.shape[1]+1) * (y_test[i,:] == 1) )
+                else:
+                    y2 = 0
+                
+                y_test_result.append(y1)
+                y_pred_result.append(y2)
+            
             confusion_mx = metrics.confusion_matrix(y_test_result, y_pred_result)
-            accuracy = np.trace(confusion_mx)/np.sum(np.sum(confusion_mx))
+            accuracy = np.trace(confusion_mx) / y_test.shape[0]
+
+            # print(f"!!! The temp_acc: {temp_acc}")
+            self.result_dict.update({'confusion_mx':confusion_mx})
             self.result_dict.update({'Accuracy': accuracy})
+
+            self.result_dict.update({'Y_test': y_test})
+            self.result_dict.update({'P_pred': P_pred})
+            self.result_dict.update({'Y_pred': y_hat})
             
             print("Test accuracy = {}, Test confusion_mx = {}".format(accuracy, confusion_mx))
             
