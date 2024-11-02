@@ -14,8 +14,8 @@ import torch
 from torch.autograd import Variable
 
 import sys
-sys.path.append('../src')  # Go one level up and then into src
-from SMF import SMF_BCD
+sys.path.append('../src/supervised_NDL')  # Go one level up and then into src
+from SMF_BCD import SDL_BCD
 from SMF_torch import smf
 
 

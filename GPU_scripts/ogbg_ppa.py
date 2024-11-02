@@ -8,13 +8,13 @@ import pickle
 
 import sys
 
-sys.path.append('/Users/yee/Research/REU_2024/REU2024_code/src/sampling')
+sys.path.append('../src/sampling')
 from Sampling import sampling_graph_classification
 
-sys.path.append('/Users/yee/Research/REU_2024/REU2024_code/src/supervised_NDL')
+sys.path.append('../src/supervised_NDL')
 from SMF_torch import smf
 
-sys.path.append('/Users/yee/Research/REU_2024/REU2024_code/util')
+sys.path.append('../util')
 from plotting import *
 
 
