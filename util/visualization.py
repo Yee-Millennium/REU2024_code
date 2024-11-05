@@ -172,17 +172,23 @@ def compute_affinity_scores_for_all_networks(ntwk_list, W, beta, average=False, 
         # Return the first trial's result if not averaging
         return affinity_scores
 
-def plot_3d_affinity_scores(ntwk_list, affinity_scores, baseline_i, view_angle=(30, 60), average=False, times=1):
+
+def plot_3d_affinity_scores(ntwk_list, affinity_scores, baseline_i, view_angle=(30, 60), average=False, times=1, ax=None):
     """Plot 3D affinity scores for the networks on a single graph, with option to include standard deviation."""
-    fig = plt.figure(figsize=(10, 8))
-    ax = fig.add_subplot(111, projection='3d')
+    
+    if ax is None:
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+    else:
+        fig = plt.gcf()  # Get the current figure if using an existing subplot
+
     print("Plotting...")
 
     colormap = plt.colormaps.get_cmap('tab10')
     colors = [colormap(i / len(ntwk_list)) for i in range(len(ntwk_list))]
     markers = ['v', 's', 'p', '^', 'D', '*', 'P', 'X', 'h']
 
-    # Plot Standards with same color as first three networks
+    # Plot Standards with the same color as the first three networks
     standard_points = []
     for idx in range(3):
         point = [idx == 0, idx == 1, idx == 2]
@@ -241,29 +247,14 @@ def plot_3d_affinity_scores(ntwk_list, affinity_scores, baseline_i, view_angle=(
     else:
         ax.set_title(f'3D Visualization of Average Predicted Network Similarities ({times} times)')
 
-    # Set the legend at the bottom
-    ax.legend(loc='upper right', bbox_to_anchor=(1.2, 1), ncol=1)
-
+    # Only add the legend and table if we're not in a subplot (to avoid overcrowding)
+    if ax.get_subplotspec() is None:
+        ax.legend(loc='upper right', bbox_to_anchor=(1.2, 1), ncol=1)
+    
     ax.view_init(elev=view_angle[0], azim=view_angle[1])
 
-    # Add a table to display the coordinates, and optionally standard deviations, positioned below the plot
-    print("Adding a table...")
-    if average:
-        table_data = list(zip(labels, coordinates, std_devs))
-        col_labels = ["Network", "Coordinates", "Std Dev"]
-    else:
-        table_data = list(zip(labels, coordinates))
-        col_labels = ["Network", "Coordinates"]
+    return fig if ax.get_subplotspec() is None else None  # Return the figure if it's not a subplot
 
-    ax_table = plt.axes([0.1, 0.01, 0.8, 0.15])  # Positioning the table below the plot
-    ax_table.axis("off")
-    table = ax_table.table(cellText=table_data, colLabels=col_labels, loc='center', cellLoc='center')
-    table.scale(1, 1.5)
-    table.auto_set_font_size(False)
-
-    plt.subplots_adjust(left=0.1, right=0.9, top=0.85, bottom=0.3)  # Adjust plot to fit table nicely
-
-    return fig  # Return the figure to combine them later
 
 def save_plot(fig, ntwk_list, base_sample_size, k, n_components, iterations, baseline_i, average):
     """Save the plot to a file with a concise name including network names and parameters."""
@@ -282,7 +273,7 @@ def save_plot(fig, ntwk_list, base_sample_size, k, n_components, iterations, bas
 
 # Multiclass Main Function 
 
-def plot_3d_prediction(ntwk_list, base_sample_size, k, xi, n_components, iterations, baseline_i, skip_folded_hom=True, average=False, times=1):
+def plot_3d_prediction(ntwk_list, base_sample_size, k, xi, n_components, iterations, baseline_i, skip_folded_hom=True, average=False, times=1, ax=None):
     """Compute and plot 3D prediction of network similarities."""
     n = len(ntwk_list)
     if n <= 3:
@@ -293,15 +284,135 @@ def plot_3d_prediction(ntwk_list, base_sample_size, k, xi, n_components, iterati
     os.makedirs('dictionaries', exist_ok=True)
     
     # Compute dictionary for the baseline set of 3 networks, with optional averaging
-    W, beta, H = compute_latent_motifs_and_dictionary(ntwk_list, base_sample_size=base_sample_size, k=k, xi=xi, n_components=n_components, iterations=iterations, baseline_i=baseline_i, skip_folded_hom=skip_folded_hom, average=average, times=times)
+    W, beta, H = compute_latent_motifs_and_dictionary(
+        ntwk_list, base_sample_size=base_sample_size, k=k, xi=xi, n_components=n_components,
+        iterations=iterations, baseline_i=baseline_i, skip_folded_hom=skip_folded_hom,
+        average=average, times=times
+    )
 
     # Compute affinity scores for all networks, with optional averaging
-    affinity_scores = compute_affinity_scores_for_all_networks(ntwk_list, W, beta, average=average, times=times)
+    affinity_scores = compute_affinity_scores_for_all_networks(
+        ntwk_list, W, beta, average=average, times=times
+    )
 
     # Generate and show a single plot with all networks, including the baseline and additional ones
-    fig = plot_3d_affinity_scores(ntwk_list, affinity_scores, baseline_i, average=average, times=times)
+    if ax is None:
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+        plot_3d_affinity_scores(ntwk_list, affinity_scores, baseline_i, average=average, times=times, ax=ax)
+        plt.show()
+        return fig  # Return the figure if created
+    else:
+        # Use the provided ax for plotting, no need to show or return fig
+        plot_3d_affinity_scores(ntwk_list, affinity_scores, baseline_i, average=average, times=times, ax=ax)
+
+
+
+# Four-baseline Radar Plot
+@contextmanager
+def suppress_output():
+    with open(os.devnull, 'w') as fnull:
+        original_stdout = sys.stdout
+        sys.stdout = fnull
+        try:
+            yield
+        finally:
+            sys.stdout = original_stdout
+
+# Dictionary Functions for Four Baselines
+def get_save_path_4_baseline(ntwk_list, base_sample_size, k, xi, n_components, iterations, baseline_i, average=False):
+    """Generate a unique file path for saving the dictionary based on parameters for four baselines."""
+    params_str = f"bs{base_sample_size}_k{k}_xi{xi}_nc{n_components}_iter{iterations}_bi{baseline_i}"
+    if average:
+        params_str += "_avg"
+    ntwk_str = "_".join(ntwk_list[baseline_i:baseline_i+4])
+    filename = f"dictionaries/{ntwk_str}_{params_str}.pkl"
+    return filename
+
+def save_dictionary(W, beta, H, filepath):
+    """Save W, beta, H to a file."""
+    with open(filepath, 'wb') as f:
+        pickle.dump((W, beta, H), f)
+
+def load_dictionary(filepath):
+    """Load W, beta, H from a file."""
+    with open(filepath, 'rb') as f:
+        W, beta, H = pickle.load(f)
+    return W, beta, H
+
+def compute_latent_motifs_and_dictionary_4_baseline(ntwk_list, base_sample_size, k, xi, n_components, iterations, baseline_i=0, skip_folded_hom=True, average=False, times=1):
+    """Compute or load the latent motifs and dictionary for four baselines."""
+    filepath = get_save_path_4_baseline(ntwk_list, base_sample_size, k, xi, n_components, iterations, baseline_i, average=average)
     
-    # Save the plot
-    save_plot(fig, ntwk_list, base_sample_size, k, n_components, iterations, baseline_i, average)
+    if os.path.exists(filepath) and not average:
+        W, beta, H = load_dictionary(filepath)
+    else:
+        graph_list = []
+        for ntwk in ntwk_list[baseline_i:baseline_i+4]:
+            path = f"data/{ntwk}.txt"
+            G = nn.NNetwork()  # Correct instantiation
+            G.load_add_edges(path, increment_weights=False, use_genfromtxt=True)
+            graph_list.append(G)
+
+        for trial in range(times):
+            with suppress_output():
+                W, beta, H = sndl_equalEdge(graph_list, base_sample_size=base_sample_size, k=k, xi=xi, n_components=n_components, iter=iterations, skip_folded_hom=skip_folded_hom)
+            if trial == times - 1:
+                save_dictionary(W, beta, H, filepath)
     
+    return W, beta, H
+
+def compute_affinity_scores_for_all_networks_4_baseline(ntwk_list, W, beta, average=False, times=1):
+    """Compute affinity scores for all networks using four baseline networks."""
+    num_baselines = 4
+    affinity_scores = {ntwk: [0] * num_baselines for ntwk in ntwk_list}
+
+    for trial in range(times):
+        for idx, ntwk in enumerate(ntwk_list):
+            path = f"data/{ntwk}.txt"
+            G = nn.NNetwork()  # Corrected instantiation of NNetwork
+            G.load_add_edges(path, increment_weights=False, use_genfromtxt=True)
+            prob = compute_prediction_scores(G, W, beta, 500)
+            
+            # Ensure prob has the correct number of elements
+            if len(prob) != num_baselines:
+                raise ValueError(f"Expected {num_baselines} elements in affinity scores, but got {len(prob)}")
+
+            # Accumulate scores for averaging
+            for model in range(num_baselines):
+                affinity_scores[ntwk][model] += prob[model] / times
+
+    return affinity_scores
+
+
+# Radar Plot Function
+def plot_radar_affinity_scores(ntwk_list, affinity_scores, title="Radar Plot of Affinity Scores for Synthetic Networks"):
+    """Generate a radar plot to visualize the affinity scores of each network with respect to four baseline types."""
+    labels = ['ER', 'WS', 'BA', 'CM']
+    num_vars = len(labels)
+
+    angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
+    angles += angles[:1]
+
+    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
+    ax.set_theta_offset(np.pi / 2)
+    ax.set_theta_direction(-1)
+
+    for ntwk in ntwk_list:
+        values = affinity_scores[ntwk]
+        values = np.append(values, values[0])
+
+        ax.plot(angles, values, label=ntwk, linewidth=2)
+        ax.fill(angles, values, alpha=0.25)
+
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(labels)
+
+    ax.set_rlabel_position(0)
+    ax.set_yticks([0.2, 0.5, 0.8])
+    ax.set_yticklabels(["0.2", "0.5", "0.8"], color="grey", size=8)
+    ax.set_ylim(0, 1)
+
+    plt.title(title, size=15, color='black', y=1.1)
+    plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
     plt.show()
