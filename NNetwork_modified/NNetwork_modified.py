@@ -662,7 +662,7 @@ class NNetwork():
         X_temp = []
         embs = []
         count = 0
-        while (num_hom_sampled < sample_size) and (count < 20000 * sample_size):
+        while (num_hom_sampled < sample_size) and (count < 2000000 * sample_size):
             emb = self.update_emb(emb,
                                 iterations=1,
                                 sampling_alg=sampling_alg)

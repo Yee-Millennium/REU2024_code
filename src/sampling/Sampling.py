@@ -1,7 +1,7 @@
 # Author: Yi Wei
 import numpy as np 
 import sys
-sys.path.append('/Users/yee/Research/REU_2024/REU2024_code/NNetwork_modified')
+sys.path.append('../NNetwork_modified')
 from NNetwork_modified import NNetwork as nw
 import tqdm
 
