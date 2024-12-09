@@ -5,7 +5,6 @@ sys.path.append('../NNetwork_modified')
 from NNetwork_modified import NNetwork as nw
 import tqdm
 
-
 def sampling_sndl(list_graphs: list, 
                   k = 20, 
                   sample_size_list = None, 
